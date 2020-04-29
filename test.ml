@@ -78,7 +78,7 @@ module StateTestMaker = struct
   let test_init_bag (name : string) (res : (char * int) array) : test =
     name >:: (fun _ -> 
         assert_equal 
-          res init_bag)
+          res (init_bag ()))
 
   open Scrabble
   open TreeSet
