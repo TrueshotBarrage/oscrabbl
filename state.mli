@@ -17,7 +17,7 @@ val init_state : state
 
 (** [init_bag] is the starting bag associative array of letters to 
     their quantities. *)
-val init_bag : (char * int) array
+val init_bag : unit -> (char * int) array
 
 (** [fill_player_hand st] fills the player's hand up to seven letters by 
     taking them out of the bag. *)

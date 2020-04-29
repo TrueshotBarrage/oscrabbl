@@ -85,7 +85,7 @@ let set_board_modifiers (b : board) : unit =
   set_triple_letters b
 
 (** [init_board] is the initial board state of every game. *)
-let init_board : board = 
+let init_board () : board = 
   let empty_tile = {
     modifier = Nil;
     status = Empty;
@@ -104,7 +104,7 @@ let index c = Char.code c - 65
     [index' -33] is the space character [' ']. *)
 let index' n = Char.chr (n + 65)
 
-let init_bag = 
+let init_bag () = 
   let bag = Array.of_list letter_qty in 
   bag (* unnecessary, but works around OCaml and Reason linting issue *)
 
@@ -225,10 +225,10 @@ let remove_letter_from_bot_hand st char : state =
 
 let init_state : state = 
   {
-    board = init_board;
+    board = init_board ();
     player_hand = [];
     bot_hand = [];
-    letter_bag = init_bag;
+    letter_bag = init_bag ();
     available_letters = init_available_letters;
     player_score = 0;
     bot_score = 0;
