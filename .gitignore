@@ -1,7 +1,7 @@
-# assignment
+# documentation & zip
 doc.public
 doc.private
-adventure.zip
+scrabble.zip
 
 # ocaml
 *.cmo
@@ -19,3 +19,5 @@ _build
 \#*\#
 .DS_Store
 
+# misc files
+_*
