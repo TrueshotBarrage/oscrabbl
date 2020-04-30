@@ -10,7 +10,7 @@ let pp_color c = ANSITerminal.print_string [c]
 (** [pp_y str] is a shorthand for [pp_color ANSITerminal.yellow str]. *)
 let pp_y = pp_color ANSITerminal.yellow
 
-(** [pp_b str] is a shorthand for [pp_color ANSITerminal.blue str]. *)
+(** [pp_b str] is a shorthand for [pp_color ANSITerminal.cyan str]. *)
 let pp_b = pp_color ANSITerminal.cyan
 
 (** [print_tile_top t] pretty-prints [t]'s upper half, ASCII style. *)
@@ -56,17 +56,23 @@ let print_tile_bottom t =
     end
 
 (** [print_row arr] pretty-prints an entire row of a tiles array [arr]. *)
-let print_row arr = 
-  pp_y "|";
+let print_row i arr = 
+  i |> string_of_int |> pp_b;
+  let _ = if i < 10 then print_string " " else () in
+  pp_y " |";
   Array.iter print_tile_top arr;
-  pp_y "\n|";
+  print_string " ";
+  let _ = if i < 10 then print_string " " else () in
+  i |> string_of_int |> pp_b;
+  pp_y "\n   |";
   Array.iter print_tile_bottom arr;
-  print_endline ""
+  print_string "\n"
 
-(** [print_board b] pretty-prints a game board [b]. *)
 let print_board b = 
-  pp_y "_____________________________________________________________\n";
-  Array.iter print_row b
+  pp_b "     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14 \n";
+  pp_y "   _____________________________________________________________\n";
+  Array.iteri print_row b;
+  pp_b "\n     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14 \n"
 
 let main () =
   let init = init_state in 
