@@ -12,6 +12,7 @@ type modifier =
   | Nil
   | Word of int
   | Char of int
+  | Origin
 
 (** [tile] is a tile on the board *)
 type tile = {
@@ -34,6 +35,9 @@ val triple_letter : tile
 
 (** [double_letter] is the tile that doubles the letter score. *)
 val double_letter : tile
+
+(** [origin_letter] is the tile where every game must start. *)
+val origin_letter : tile
 
 (** [bucket] is the letters and  their scores. *)
 val bucket : letter list

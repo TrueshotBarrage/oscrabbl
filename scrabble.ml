@@ -9,11 +9,12 @@ type modifier =
   | Nil
   | Word of int
   | Char of int
+  | Origin
 
 type tile = {
   modifier: modifier;
   status: status;
-  letter: letter;
+  letter: letter
 }
 
 let triple_word = {
@@ -31,13 +32,19 @@ let double_word = {
 let triple_letter = {
   modifier = Char 3;
   status = Empty;
-  letter = (' ', 0);
+  letter = (' ', 0)
 }
 
 let double_letter = {
   modifier = Char 2;
   status = Empty;
   letter = (' ', 0)    
+}
+
+let origin_letter = {
+  modifier = Origin;
+  status = Empty;
+  letter = (' ', 0)
 }
 
 type board = (tile array) array

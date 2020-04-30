@@ -76,13 +76,17 @@ let set_triple_letters b =
   b.(13).(5) <- triple_letter;
   b.(13).(9) <- triple_letter
 
+let set_origin b =
+  b.(7).(7) <- origin_letter
+
 (** [set_board_modifiers b] sets the appropriate tiles of [b] to be 
     to be score multiplier tiles. *)
 let set_board_modifiers (b : board) : unit =
   set_double_words b;
   set_triple_words b; 
   set_double_letters b;
-  set_triple_letters b
+  set_triple_letters b;
+  set_origin b
 
 (** [init_board] is the initial board state of every game. *)
 let init_board () : board = 
@@ -91,10 +95,9 @@ let init_board () : board =
     status = Empty;
     letter = (' ', 0)
   } in
-  let inner_arr = Array.make 15 empty_tile in
-  let outer_arr = Array.make 15 inner_arr in 
-  set_board_modifiers (outer_arr); 
-  outer_arr
+  let arr = Array.make_matrix 15 15 empty_tile in 
+  set_board_modifiers (arr); 
+  arr
 
 (** [index c] is the 0-based index of [c] in the alphabet. 
     If [c] is the space character [' '] with ASCII code 32, return -33. *)
