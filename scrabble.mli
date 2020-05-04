@@ -1,18 +1,18 @@
 (** [letter] is the type of letters in the game *)
 type letter = char * int
 
-(** [status] is the status of the tile *)
-type status = 
-  | Empty
-  | Filled
-  | Set
-
 (** [modifier] is the modifier of the tile *)
 type modifier = 
   | Nil
   | Word of int
   | Char of int
   | Origin
+
+(** [status] is the status of the tile *)
+type status = 
+  | Empty
+  | Filled
+  | Set
 
 (** [tile] is a tile on the board *)
 type tile = {
@@ -23,6 +23,9 @@ type tile = {
 
 (** [board] is the board. *)
 type board = (tile array) array
+
+(** [empty_tile] is the default tile. *)
+val empty_tile : tile
 
 (** [triple_word] is the tile that triples the word score. *)
 val triple_word : tile

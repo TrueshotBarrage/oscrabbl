@@ -13,6 +13,9 @@ let pp_y = pp_color ANSITerminal.yellow
 (** [pp_b str] is a shorthand for [pp_color ANSITerminal.cyan str]. *)
 let pp_b = pp_color ANSITerminal.cyan
 
+(** [pp_m str] is a shorthand for [pp_color ANSITerminal.magenta str]. *)
+let pp_m = pp_color ANSITerminal.magenta
+
 (** [print_tile_top t] pretty-prints [t]'s upper half, ASCII style. *)
 let print_tile_top t = 
   match t.status with 
@@ -28,10 +31,10 @@ let print_tile_top t =
         pp_y "|"
     end
   | Filled -> 
-    (t.letter |> fst |> Char.escaped) |> print_string;
+    (t.letter |> fst |> Char.escaped) ^ "  " |> pp_m;
     pp_y "|"
   | Set -> 
-    (t.letter |> fst |> Char.escaped) ^ "  " |> print_string;
+    (t.letter |> fst |> Char.escaped) ^ "  " |> pp_m;
     pp_y "|"
 
 (** [print_tile_top t] pretty-prints [t]'s lower half, ASCII style. *)
@@ -40,22 +43,26 @@ let print_tile_bottom t =
   | Empty -> pp_y "___|"
   | Filled -> begin
       let value = t.letter |> snd in 
-      let print_value = 
-        if value > 9 then print_string (string_of_int value) 
-        else pp_y "_";
-        print_string (string_of_int value) in 
+      let print_value () = 
+        if value > 9 then pp_m (string_of_int value) 
+        else (
+          pp_y "_";
+          pp_m (string_of_int value)
+        ) in 
       pp_y "_";
-      print_value; 
+      print_value (); 
       pp_y "|"
     end
   | Set -> begin
       let value = t.letter |> snd in 
       let value_str = 
         if value > 9 then string_of_int value else "_" ^ string_of_int value in 
-      "_" ^ value_str ^ "|" |> print_string
+      pp_y "_"; 
+      pp_m value_str;
+      pp_y "|"
     end
 
-(** [print_row arr] pretty-prints an entire row of a tiles array [arr]. *)
+(** [print_row i arr] pretty-prints an entire row of a tiles array [arr]. *)
 let print_row i arr = 
   i |> string_of_int |> pp_b;
   let _ = if i < 10 then print_string " " else () in
@@ -76,7 +83,10 @@ let print_board b =
 
 let main () =
   let init = init_state in 
-  print_board init.board
+  let s = init |> put_on_board 2 2 'Z' in 
+  print_board s.board;
+  let s' = s |> reset_board in 
+  print_board s'.board
 
 (* Execute the game engine. *)
 let () = main ()

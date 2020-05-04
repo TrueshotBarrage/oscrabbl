@@ -1,5 +1,7 @@
 open Scrabble
 
+exception InvalidTilePlacement
+exception InvalidWords
 (** [repeat f n st] applies [f] to [st] [n] times. *)
 let rec repeat f n st = 
   if n > 0 then repeat f (n-1) (f st)
@@ -10,6 +12,7 @@ type state = {
   player_hand: letter list;
   bot_hand: letter list;
   letter_bag: letter array;
+  coords: (int * int) list;
   available_letters: char list;
   player_score: int;
   bot_score: int;
@@ -90,11 +93,6 @@ let set_board_modifiers (b : board) : unit =
 
 (** [init_board] is the initial board state of every game. *)
 let init_board () : board = 
-  let empty_tile = {
-    modifier = Nil;
-    status = Empty;
-    letter = (' ', 0)
-  } in
   let arr = Array.make_matrix 15 15 empty_tile in 
   set_board_modifiers (arr); 
   arr
@@ -161,17 +159,21 @@ let update_available_letters removing char st : state =
          st with available_letters = avail
        } in st')
 
+(** [letter_of_char char] finds the letter corresponding to [char]. *)
+let letter_of_char char = 
+  List.find (fun e -> fst e = char) bucket
+
 (** [add_letter_to_hand c hand] adds the corresponding letter of [c] 
     to [hand]. Should only be called if the letter is removed elsewhere. *)
 let add_letter_to_hand char hand : letter list = 
-  let letter = List.find (fun e -> fst e = char) bucket in 
+  let letter = letter_of_char char in 
   let new_hand = letter::hand in 
   new_hand (* unnecessary, but works around OCaml and Reason linting issue *)
 
 (** [remove_letter_from_hand c hand] removes the corresponding letter of [c] 
     from [hand]. Should only be called if the letter is added elsewhere. *)
 let rec remove_letter_from_hand char hand : letter list = 
-  let letter = List.find (fun e -> fst e = char) bucket in
+  let letter = letter_of_char char in
   match hand with 
   | [] -> raise Not_found
   | h::t -> if h = letter then t 
@@ -219,18 +221,134 @@ let rec fill_bot_hand st : state =
     let st'' = update_bot_hand (add_letter_to_hand random_char) st' in 
     fill_bot_hand st''
 
-let remove_letter_from_player_hand st char : state = 
+let remove_letter_from_player_hand char st : state = 
   update_player_hand (remove_letter_from_hand char) st
 
-let remove_letter_from_bot_hand st char : state = 
+let remove_letter_from_bot_hand char st : state = 
   update_bot_hand (remove_letter_from_hand char) st
 
+let put_on_board x y c st = 
+  let letter = letter_of_char c in 
+  let tile = st.board.(x).(y) in 
+  let tile' = {
+    tile with 
+    status = Filled;
+    letter = letter
+  } in 
+  st.board.(x).(y) <- tile';
+  {
+    st with
+    coords = (x,y)::st.coords
+  }
+
+(** [is_row lst] returns whether [lst] contains coordinates that 
+    can be placed all in a single row or column. 
+    Raises: [InvalidTilePlacement] if [lst] contains coordinates of multiple
+    rows, columns, or both. *)
+let is_row lst = failwith "Unimplemented"
+
+
+(** [check_word tlst] is whether the English word formed by the letters of 
+    [tlst], in order of reverse-insertion (from left to right). *)
+let check_word (tlst : tile list) = 
+  let string_of_tile str tile =
+    str ^ (tile.letter |> fst |> Char.escaped) in 
+  let word = List.fold_left string_of_tile "" tlst in 
+  valid_words |> TreeSet.member word
+
+(** [column_word b coords] checks a column of tiles for any word formed 
+    by tile placement on [b], then returns the list of words as a 
+    [tile tile list]. *)
+let column_word b (x,y) =
+  let rec column_up x y b acc = 
+    if y = 0 then acc
+    else if b.(x).(y).status = Empty then acc 
+    else column_up x (y-1) b (b.(x).(y)::acc) in
+  let rec column_down x y b acc = 
+    if y = 14 then acc
+    else if b.(x).(y).status = Empty then acc 
+    else column_up x (y+1) b (acc @ [b.(x).(y)]) in 
+  column_up x y b [] @ (b.(x).(y)::column_down x y b [])
+
+(** [score_of_word bonus score tlst] is the score of the word given by [tlst], 
+    with initial [score] of 0 and a [bonus] of 1 for regular usage. *)
+let rec score_of_word mult acc tlst =
+  match tlst with 
+  | [] -> mult * acc
+  | h::t -> begin 
+      match h.modifier with 
+      | Nil | Origin -> score_of_word mult (acc + snd h.letter) t
+      | Char n -> score_of_word mult (acc + n * (snd h.letter)) t
+      | Word n -> score_of_word (mult * n) (acc + snd h.letter) t
+    end
+
+(** [score_of_words coords b] is the sum total of the score to be added for a
+    given [coords] list in [b]. *)
+let score_of_words coords b = 
+  if is_row (coords) then 
+    let word_list = List.map (column_word b) coords in 
+    let words_are_valid = 
+      List.fold_left (fun acc tlst -> acc && (check_word tlst)) true word_list 
+    in if words_are_valid then 
+      List.fold_left (fun acc word -> acc + score_of_word 1 0 word) 0 word_list
+    else raise InvalidWords
+  else failwith "Unimplemented"
+
+(** [reset_coords st] resets the coordinates list of [st]. *)
+let reset_coords st = {
+  st with 
+  st.coords = []
+}
+
+let set_board st = 
+  let b = st.board in 
+  let coords = st.coords in 
+  List.iter (
+    fun c -> 
+      let tile = b.(fst c).(snd c) in 
+      b.(fst c).(snd c) <- {
+        tile with 
+        status = Set;
+        modifier = Nil;
+      } 
+  ) coords
+
+let reset_board st = 
+  let reset_tile (x,y) = 
+    let old_tile = st.board.(x).(y) in 
+    let new_tile = {
+      old_tile with 
+      status = Empty;
+      letter = (' ', 0)
+    } in 
+    st.board.(x).(y) <- new_tile in 
+  List.iter reset_tile st.coords
+
+let update_score st : int = 
+  score_of_words (st.coords) (st.board)
+
+(** [confirm_player_turn f st] is the game state with the player's score 
+    updated by applying [f]. Should be called by main. *)
+let confirm_player_turn st = 
+  {
+    st with 
+    player_score = f (st)
+  } |> set_board
+
+(** [change_score_bot f st] is the game state with the bot's score 
+    updated by applying [f]. Should be called by main. *)
+let change_score_bot f st = 
+  {
+    st with 
+    bot_score = f (st.bot_score)
+  }
 
 let init_state : state = 
   {
     board = init_board ();
     player_hand = [];
     bot_hand = [];
+    coords = [];
     letter_bag = init_bag ();
     available_letters = init_available_letters;
     player_score = 0;

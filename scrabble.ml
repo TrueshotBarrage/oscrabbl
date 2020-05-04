@@ -1,20 +1,26 @@
 type letter = char * int
 
-type status = 
-  | Empty
-  | Filled
-  | Set
-
 type modifier = 
   | Nil
   | Word of int
   | Char of int
   | Origin
 
+type status = 
+  | Empty
+  | Filled
+  | Set
+
 type tile = {
   modifier: modifier;
   status: status;
   letter: letter
+}
+
+let empty_tile = {
+  modifier = Nil;
+  status = Empty;
+  letter = (' ', 0)
 }
 
 let triple_word = {
