@@ -84,9 +84,7 @@ let print_board b =
 let main () =
   let init = init_state in 
   let s = init |> put_on_board 2 2 'Z' in 
-  print_board s.board;
-  let s' = s |> reset_board in 
-  print_board s'.board
+  print_board s.board
 
 (* Execute the game engine. *)
 let () = main ()

@@ -297,7 +297,7 @@ let score_of_words coords b =
 (** [reset_coords st] resets the coordinates list of [st]. *)
 let reset_coords st = {
   st with 
-  st.coords = []
+  coords = []
 }
 
 let set_board st = 
@@ -329,7 +329,7 @@ let update_score st : int =
 
 (** [confirm_player_turn f st] is the game state with the player's score 
     updated by applying [f]. Should be called by main. *)
-let confirm_player_turn st = 
+let confirm_player_turn f st = 
   {
     st with 
     player_score = f (st)
@@ -340,7 +340,7 @@ let confirm_player_turn st =
 let change_score_bot f st = 
   {
     st with 
-    bot_score = f (st.bot_score)
+    bot_score = f (st)
   }
 
 let init_state : state = 

@@ -1,6 +1,8 @@
 ## Todos
 
 - is_row
+- confirm_player_turn
+- change_bot_score
 - called by main on exception: confirm_turn
 
   - st on exception |> reset_board |> update_player/bot_hand (give person his hand back) |> reset_coords
