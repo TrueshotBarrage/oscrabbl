@@ -11,6 +11,7 @@ type state = {
   letter_bag: letter array;
   coords: (int * int) list;
   available_letters: char list;
+  checked_words: (string, unit) Hashtbl.t;
   player_score: int;
   bot_score: int;
 }
@@ -50,9 +51,28 @@ val put_on_board : int * int -> char -> state -> state
     (aka valid) board state if inserted. *)
 val is_row : (int * int) list -> board -> bool
 
+(** [score_move st] is the sum total of the score to be added for a
+    given [st.coords] list in [st.board]. *)
+val score_move : state -> int
+
+(** [reset_coords st] is the new state [st'] with an empty coordinates list. *)
+val reset_coords : state -> state
+
 (** [set_board st] sets the tiles corresponding to the coordinates of 
     the board of [st]: status [Filled] -> [Set], modifier [_] -> [Nil]. *)
 val set_board : state -> unit
 
 (** [reset_board st] resets the board of any [Filled] letters. *)
 val reset_board : state -> unit
+
+(** [confirm_player_turn st] attempts to score the newly filled tiles by the 
+    player, and on success, accumulates the points to the player's score. The 
+    board is updated with the filled letters to be permanently set, and the
+    coordinates of the filled tiles is reset. *)
+val confirm_player_turn : state -> state
+
+(** [confirm_bot_turn st] attempts to score the newly filled tiles by the bot, 
+    and on success, accumulates the points to the bot's score. The board is 
+    updated with the filled letters to be permanently set, and the coordinates 
+    of the filled tiles is reset. *)
+val confirm_bot_turn : state -> state

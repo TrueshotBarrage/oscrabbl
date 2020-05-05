@@ -15,6 +15,7 @@ type state = {
   letter_bag: letter array;
   coords: (int * int) list;
   available_letters: char list;
+  checked_words: (string, unit) Hashtbl.t;
   player_score: int;
   bot_score: int;
 }
@@ -257,38 +258,39 @@ let put_on_board (x,y) c st =
       coords = (x,y)::st.coords
     }
 
+(** [is_set (x,y) b] is if the tile at [(x,y)] on [b] is [Set]. *)
+let is_set (x,y) b = b.(x).(y).status = Set
+
+(** [adjacent_squares (i,j)] is the list of coordinates adjacent to [(i,j)], 
+    satisfying constraints of the outer boundaries of the board. *)
+let adjacent_squares (i,j) = 
+  let output = ref [] in 
+  if i + 1 <= 14 then output := (i+1, j)::!output;
+  if i - 1 >= 0 then output := (i-1, j)::!output;
+  if j + 1 <= 14 then output := (i, j+1)::!output;
+  if j - 1 >= 0 then output := (i, j-1)::!output;
+  !output
+
+(** [checkable_coords acc coord] is the set of tiles that can be checked
+    adjacent to the tile at [coord], combined with [acc]. Used for folding. *)
+let checkable_coords accum coord =
+  let rec loop acc = function
+    | [] -> acc
+    | h::t -> if List.mem h acc then loop acc t else loop (h::acc) t in 
+  loop accum (adjacent_squares coord)
+
 let is_row lst b = 
-  let is_set (x,y) = 
-    match b.(x).(y).status with 
-    | Empty | Filled -> false
-    | Set -> true in 
-
-  let adjacent_squares (i,j) = 
-    let output = ref [] in 
-    if i + 1 <= 14 then output := (i+1, j)::!output;
-    if i - 1 >= 0 then output := (i-1, j)::!output;
-    if j + 1 <= 14 then output := (i, j+1)::!output;
-    if j - 1 >= 0 then output := (i, j-1)::!output;
-    !output in 
-
-  let checkable_coords accum coord =
-    let rec loop acc lst = 
-      match lst with 
-      | [] -> acc
-      | h::t -> if List.mem h acc then loop acc t else loop (h::acc) t in 
-    loop accum (adjacent_squares coord) in 
-
   let rec is_connected coords board =
     let adj_tiles = coords |> List.fold_left checkable_coords [] in 
-    let rec check_adj_tiles tls = 
-      match tls with 
+    let rec check_adj_tiles = function
       | [] -> false
-      | h::t -> if is_set h then true else check_adj_tiles t in 
+      | h::t -> if is_set h b then true else check_adj_tiles t in 
     check_adj_tiles adj_tiles in 
-
   match lst with 
   | [] -> raise InvalidTilePlacement
-  | [_] -> if is_connected lst b then true else raise InvalidTilePlacement
+  | [_] -> 
+    if List.mem (7,7) lst || is_connected lst b then true
+    else raise InvalidTilePlacement
   | h::t -> 
     let is_row_placement x xl = 
       List.fold_left (fun bool elt -> bool && fst elt = x) true xl in 
@@ -296,41 +298,49 @@ let is_row lst b =
       List.fold_left (fun bool elt -> bool && snd elt = y) true yl in 
     let is_r = is_row_placement (fst h) t in 
     if (is_r <> is_col_placement (snd h) t) && is_connected lst b then is_r 
+    else if List.mem (7,7) lst then is_r 
     else raise InvalidTilePlacement
 
-(** [check_word tlst] is whether the English word formed by the letters of 
+(** [check_word tlst st] is whether the English word formed by the letters of 
     [tlst], in order of reverse-insertion (from left to right). *)
-let check_word tlst = 
-  let string_of_tile str tile =
-    str ^ (tile.letter |> fst |> Char.escaped) in 
-  let word = List.fold_left string_of_tile "" tlst in 
-  valid_words |> TreeSet.member word
+let check_word tlst st = 
+  if tlst = [] then true 
+  else 
+    let string_of_tile str tile =
+      str ^ (tile.letter |> fst |> Char.escaped) in 
+    let word = List.fold_left string_of_tile "" tlst in 
+    if Hashtbl.mem st.checked_words word then true 
+    else if valid_words |> TreeSet.member word 
+    then (Hashtbl.add st.checked_words word (); true)
+    else false
 
-(** [column_word b coord] checks a column of tiles for any word formed by tile 
-    placement on [b], then returns the list of words as a [tile list]. *)
+(** [column_word b coord] checks a column of tiles if a word was formed by tile 
+    placement on [b], then returns the word as a [tile list]. *)
 let column_word b (x,y) =
   let rec column_up x y b acc = 
-    if y = 0 then acc
+    if x = 0 then acc
     else if b.(x).(y).status = Empty then acc 
-    else column_up x (y-1) b (b.(x).(y)::acc) in
+    else column_up (x-1) y b (b.(x).(y)::acc) in
   let rec column_down x y b acc = 
-    if y = 14 then acc
+    if x >= 14 then acc
     else if b.(x).(y).status = Empty then acc 
-    else column_down x (y+1) b (acc @ [b.(x).(y)]) in 
-  column_up x y b [] @ (b.(x).(y)::column_down x y b [])
+    else column_down (x+1) y b (acc @ [b.(x).(y)]) in 
+  let wlst = column_up x y b [] @ column_down (x+1) y b [] in 
+  if List.length wlst <= 1 then [] else wlst
 
-(** [row_word b coord] checks a row of tiles for any word formed by tile 
-    placement on [b], then returns the list of words as a [tile list]. *)
+(** [row_word b coord] checks a row of tiles if a word was formed by tile 
+    placement on [b], then returns the word as a [tile list]. *)
 let row_word b (x,y) = 
   let rec row_left x y b acc = 
-    if x = 0 then acc 
+    if y = 0 then acc 
     else if b.(x).(y).status = Empty then acc 
-    else row_left (x-1) y b (b.(x).(y)::acc) in 
+    else row_left x (y-1) b (b.(x).(y)::acc) in 
   let rec row_right x y b acc = 
-    if x = 14 then acc 
+    if y >= 14 then acc 
     else if b.(x).(y).status = Empty then acc 
-    else row_right (x+1) y b (acc @ [b.(x).(y)]) in 
-  row_left x y b [] @ (b.(x).(y)::row_right x y b [])
+    else row_right x (y+1) b (acc @ [b.(x).(y)]) in 
+  let wlst = row_left x y b [] @ row_right x (y+1) b [] in 
+  if List.length wlst <= 1 then [] else wlst
 
 (** [score_of_word bonus score tlst] is the score of the word given by [tlst], 
     with initial [score] of 0 and a [bonus] of 1 for regular usage. *)
@@ -344,21 +354,26 @@ let rec score_of_word mult acc tlst =
       | Word n -> score_of_word (mult * n) (acc + snd h.letter) t
     end
 
-(** [score_of_words coords b] is the sum total of the score to be added for a
-    given [coords] list in [b]. *)
-let score_of_words coords b = 
-  if is_row coords b then 
+let score_move st = 
+  let is_valid_wlst wlst = 
+    List.fold_left (fun acc tlst -> acc && check_word tlst st) true wlst in 
+  if is_row st.coords st.board then 
     (* using List.hd is fine here; is_row throws an exception if empty *)
     let word_list = 
-      row_word b (List.hd coords)::List.map (column_word b) coords in 
-    let words_are_valid = 
-      List.fold_left (fun acc tlst -> acc && check_word tlst) true word_list in 
-    if words_are_valid then 
+      row_word st.board (List.hd st.coords)::List.map (column_word st.board) 
+        st.coords in 
+    if is_valid_wlst word_list then 
       List.fold_left (fun acc word -> acc + score_of_word 1 0 word) 0 word_list
     else raise InvalidWords
-  else failwith "Unimplemented"
+  else
+    (* using List.hd is fine here; is_row throws an exception if empty *)
+    let word_list = 
+      column_word st.board (List.hd st.coords)::List.map (row_word st.board) 
+        st.coords in 
+    if is_valid_wlst word_list then 
+      List.fold_left (fun acc word -> acc + score_of_word 1 0 word) 0 word_list
+    else raise InvalidWords
 
-(** [reset_coords st] resets the coordinates list of [st]. *)
 let reset_coords st = {
   st with 
   coords = []
@@ -388,24 +403,21 @@ let reset_board st =
     st.board.(x).(y) <- new_tile in 
   List.iter reset_tile st.coords
 
-let update_score st : int = 
-  score_of_words (st.coords) (st.board)
-
-(** [confirm_player_turn f st] is the game state with the player's score 
-    updated by applying [f]. Should be called by main. *)
-let confirm_player_turn f st = 
-  {
+let confirm_player_turn st = 
+  let updated_score = score_move st in 
+  let st' = {
     st with 
-    player_score = f (st.player_score)
-  } |> set_board
+    player_score = updated_score + st.player_score
+  } in 
+  set_board st'; reset_coords st'
 
-(** [change_score_bot f st] is the game state with the bot's score 
-    updated by applying [f]. Should be called by main. *)
-let change_score_bot f st = 
-  {
+let confirm_bot_turn st = 
+  let updated_score = score_move st in 
+  let st' = {
     st with 
-    bot_score = f (st)
-  }
+    bot_score = updated_score + st.bot_score
+  } in 
+  set_board st'; reset_coords st'
 
 let init_state () : state = 
   {
@@ -415,6 +427,7 @@ let init_state () : state =
     coords = [];
     letter_bag = init_bag ();
     available_letters = init_available_letters;
+    checked_words = Hashtbl.create 20;
     player_score = 0;
     bot_score = 0;
   }

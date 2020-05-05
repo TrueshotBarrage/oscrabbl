@@ -83,15 +83,11 @@ let print_board b =
   pp_b "\n     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14 \n"
 
 let main () =
-  let init = init_state () in 
-  let s = init |> put_on_board (7,7) 'H' |> put_on_board (7,8) 'E' 
-          |> put_on_board (7,9) 'Y' in 
-  set_board s;
-  let test_coords = [(7,10); (7,11); (7,12)] in 
-  let s' = s |> put_on_board (7,10) 'M' |> put_on_board (7,11) 'A' 
-           |> put_on_board (7,12) 'N' in 
-  is_row test_coords s'.board |> string_of_bool |> print_endline; 
-  print_board s.board
+  let st = 
+    init_state () |> put_on_board (7,7) 'H' |> put_on_board (7,8) 'E' 
+    |> put_on_board (7,9) 'Y' in 
+  let st' = confirm_player_turn st in 
+  print_board st'.board
 
 (* Execute the game engine. *)
 let () = main ()
