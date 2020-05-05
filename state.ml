@@ -230,16 +230,18 @@ let remove_letter_from_bot_hand char st : state =
 let put_on_board x y c st = 
   let letter = letter_of_char c in 
   let tile = st.board.(x).(y) in 
-  let tile' = {
-    tile with 
-    status = Filled;
-    letter = letter
-  } in 
-  st.board.(x).(y) <- tile';
-  {
-    st with
-    coords = (x,y)::st.coords
-  }
+  if tile.status = Set then raise InvalidTilePlacement
+  else
+    let tile' = {
+      tile with 
+      status = Filled;
+      letter = letter
+    } in 
+    st.board.(x).(y) <- tile';
+    {
+      st with
+      coords = (x,y)::st.coords
+    }
 
 (** [is_row lst] returns whether [lst] contains coordinates that 
     can be placed all in a single row or column. 
