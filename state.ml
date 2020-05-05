@@ -272,6 +272,17 @@ let column_word b (x,y) =
     else column_up x (y+1) b (acc @ [b.(x).(y)]) in 
   column_up x y b [] @ (b.(x).(y)::column_down x y b [])
 
+let row_word b (x,y) = 
+  let rec row_left x y b acc = 
+    if x = 0 then acc 
+    else if b.(x).(y).status = Empty then acc 
+    else row_left (x-1) y b (b.(x).(y)::acc) in 
+  let rec row_right x y b acc = 
+    if x = 14 then acc 
+    else if b.(x).(y).status = Empty then acc 
+    else row_left (x+1) y b (acc @ [b.(x).(y)]) in 
+  row_left x y b [] @ (b.(x).(y)::row_right x y b [])
+
 (** [score_of_word bonus score tlst] is the score of the word given by [tlst], 
     with initial [score] of 0 and a [bonus] of 1 for regular usage. *)
 let rec score_of_word mult acc tlst =
@@ -288,7 +299,7 @@ let rec score_of_word mult acc tlst =
     given [coords] list in [b]. *)
 let score_of_words coords b = 
   if is_row (coords) then 
-    let word_list = List.map (column_word b) coords in 
+    let word_list = (row_word b (List.hd coords)) :: (List.map (column_word b) coords)  in 
     let words_are_valid = 
       List.fold_left (fun acc tlst -> acc && (check_word tlst)) true word_list 
     in if words_are_valid then 
