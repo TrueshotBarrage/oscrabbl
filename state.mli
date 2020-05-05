@@ -40,6 +40,13 @@ val remove_letter_from_bot_hand : char -> state -> state
     the letter corresponding to [c]. *)
 val put_on_board : int -> int -> char -> state -> state
 
+(** [is_row lst b] returns whether [lst] contains coordinates that can be placed
+    all in a single row or column, and whether the placement is valid for [b].
+    Raises: [InvalidTilePlacement] if [lst] contains coordinates of multiple
+    rows, columns, or both; also raised if [lst] does not form a connected 
+    (aka valid) board state if inserted. *)
+val is_row : (int * int) list -> board -> bool
+
 (** [set_board st] sets the tiles corresponding to the coordinates of 
     the board of [st]: status [Filled] -> [Set], modifier [_] -> [Nil]. *)
 val set_board : state -> unit
