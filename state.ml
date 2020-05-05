@@ -269,9 +269,12 @@ let column_word b (x,y) =
   let rec column_down x y b acc = 
     if y = 14 then acc
     else if b.(x).(y).status = Empty then acc 
-    else column_up x (y+1) b (acc @ [b.(x).(y)]) in 
+    else column_down x (y+1) b (acc @ [b.(x).(y)]) in 
   column_up x y b [] @ (b.(x).(y)::column_down x y b [])
 
+(**[row_word b coords] checks a row of tiles for any word formed 
+    by tile placement on [b], then returns the list of words as a 
+    [tile tile list]*)
 let row_word b (x,y) = 
   let rec row_left x y b acc = 
     if x = 0 then acc 
@@ -280,7 +283,7 @@ let row_word b (x,y) =
   let rec row_right x y b acc = 
     if x = 14 then acc 
     else if b.(x).(y).status = Empty then acc 
-    else row_left (x+1) y b (acc @ [b.(x).(y)]) in 
+    else row_right (x+1) y b (acc @ [b.(x).(y)]) in 
   row_left x y b [] @ (b.(x).(y)::row_right x y b [])
 
 (** [score_of_word bonus score tlst] is the score of the word given by [tlst], 
