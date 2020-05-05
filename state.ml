@@ -21,14 +21,27 @@ type state = {
 (** [set_double_letters b] sets the appropriate tiles of [b] to be
     double letter tiles. *)
 let set_double_letters (b : board) =
+  (* Grouped by tiles that correspond to each other, for readability *)
   b.(0).(3) <- double_letter; b.(0).(11) <- double_letter;
+
   b.(2).(6) <- double_letter; b.(2).(8) <- double_letter;
-  b.(3).(0) <- double_letter; b.(3).(7) <- double_letter; b.(3).(14) <- double_letter;
-  b.(6).(2) <- double_letter; b.(6).(6) <- double_letter; b.(6).(8) <- double_letter; b.(6).(12) <- double_letter;
+
+  b.(3).(0) <- double_letter; b.(3).(7) <- double_letter; 
+  b.(3).(14) <- double_letter;
+
+  b.(6).(2) <- double_letter; b.(6).(6) <- double_letter; 
+  b.(6).(8) <- double_letter; b.(6).(12) <- double_letter;
+
   b.(7).(3) <- double_letter; b.(7).(11) <- double_letter; 
-  b.(8).(2) <- double_letter; b.(8).(6) <- double_letter; b.(8).(8) <- double_letter; b.(8).(12) <- double_letter;
-  b.(11).(0) <- double_letter; b.(11).(7) <- double_letter; b.(11).(14) <- double_letter;
+
+  b.(8).(2) <- double_letter; b.(8).(6) <- double_letter; 
+  b.(8).(8) <- double_letter; b.(8).(12) <- double_letter;
+
+  b.(11).(0) <- double_letter; b.(11).(7) <- double_letter; 
+  b.(11).(14) <- double_letter;
+
   b.(12).(6) <- double_letter; b.(12).(8) <- double_letter;
+
   b.(14).(3) <- double_letter; b.(14).(11) <- double_letter
 
 (** [set_double_letters b] sets the appropriate tiles of [b] to be
@@ -241,16 +254,51 @@ let put_on_board x y c st =
     coords = (x,y)::st.coords
   }
 
-(** [is_row lst] returns whether [lst] contains coordinates that 
-    can be placed all in a single row or column. 
+(** [is_row lst b] returns whether [lst] contains coordinates that can be placed
+    all in a single row or column, and whether the placement is valid for [b].
     Raises: [InvalidTilePlacement] if [lst] contains coordinates of multiple
-    rows, columns, or both. *)
-let is_row lst = failwith "Unimplemented"
-
+    rows, columns, or both; also raised if [lst] does not form a connected 
+    (aka valid) board state if inserted. *)
+let is_valid_row lst b = 
+  let is_filled (x,y) = 
+    match b.(x).(y).status with 
+    | Empty -> false
+    | Filled | Set -> true in 
+  let adjacent_squares i j = 
+    let output = ref [] in 
+    if i + 1 <= 14 then output := (i+1, j)::!output;
+    if i - 1 >= 0 then output := (i-1, j)::!output;
+    if j + 1 <= 14 then output := (i, j+1)::!output;
+    if j - 1 >= 0 then output := (i, j-1)::!output;
+    !output
+  in 
+  let rec is_connected coords board =
+    match coords with 
+    | [] -> true
+    | (i,j)::rest -> check_adjacent_squares (i,j) rest board
+  and check_adjacent_squares (i,j) rst brd = 
+    let rec loop tiles = 
+      match tiles with
+      | [] -> is_connected rst brd
+      | h::t -> if is_filled h then is_connected rst brd 
+        else loop t
+    in loop (adjacent_squares i j)
+  in 
+  match lst with 
+  | [] -> raise InvalidTilePlacement
+  | [_] -> if is_connected lst b then true else raise InvalidTilePlacement
+  | h::t -> 
+    let is_col_placement x xl = 
+      List.fold_left (fun bool elt -> bool && fst elt = x) true xl in 
+    let is_row_placement y yl = 
+      List.fold_left (fun bool elt -> bool && snd elt = y) true yl in 
+    let is_r = is_row_placement (snd h) t in 
+    if is_r <> is_col_placement (fst h) t && is_connected lst b then is_r 
+    else raise InvalidTilePlacement
 
 (** [check_word tlst] is whether the English word formed by the letters of 
     [tlst], in order of reverse-insertion (from left to right). *)
-let check_word (tlst : tile list) = 
+let check_word tlst = 
   let string_of_tile str tile =
     str ^ (tile.letter |> fst |> Char.escaped) in 
   let word = List.fold_left string_of_tile "" tlst in 
@@ -285,11 +333,11 @@ let rec score_of_word mult acc tlst =
 (** [score_of_words coords b] is the sum total of the score to be added for a
     given [coords] list in [b]. *)
 let score_of_words coords b = 
-  if is_row (coords) then 
+  if is_valid_row coords b then 
     let word_list = List.map (column_word b) coords in 
     let words_are_valid = 
-      List.fold_left (fun acc tlst -> acc && (check_word tlst)) true word_list 
-    in if words_are_valid then 
+      List.fold_left (fun acc tlst -> acc && check_word tlst) true word_list in 
+    if words_are_valid then 
       List.fold_left (fun acc word -> acc + score_of_word 1 0 word) 0 word_list
     else raise InvalidWords
   else failwith "Unimplemented"
@@ -297,7 +345,7 @@ let score_of_words coords b =
 (** [reset_coords st] resets the coordinates list of [st]. *)
 let reset_coords st = {
   st with 
-  st.coords = []
+  coords = []
 }
 
 let set_board st = 
@@ -329,10 +377,10 @@ let update_score st : int =
 
 (** [confirm_player_turn f st] is the game state with the player's score 
     updated by applying [f]. Should be called by main. *)
-let confirm_player_turn st = 
+let confirm_player_turn f st = 
   {
     st with 
-    player_score = f (st)
+    player_score = f (st.player_score)
   } |> set_board
 
 (** [change_score_bot f st] is the game state with the bot's score 
