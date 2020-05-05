@@ -1,5 +1,8 @@
 open Scrabble
 
+exception InvalidTilePlacement
+exception InvalidWords
+
 (** [state] is a record that indicates the state of the game. *)
 type state = {
   board: board;
@@ -12,9 +15,9 @@ type state = {
   bot_score: int;
 }
 
-(** [init_state] is the initial state of every starting board.
+(** [init_state ()] is the initial state of every starting board.
     No letters have been distributed to players at this stage. *)
-val init_state : state
+val init_state : unit -> state
 
 (** [init_bag] is the starting bag associative array of letters to 
     their quantities. *)
@@ -36,9 +39,9 @@ val remove_letter_from_player_hand : char -> state -> state
     [c] from the bot's hand in [st]. *)
 val remove_letter_from_bot_hand : char -> state -> state
 
-(** [put_on_bard x y c st] sets the board of [st] with position [(x,y)] with 
+(** [put_on_bard (x,y) c st] sets the board of [st] with position [(x,y)] with 
     the letter corresponding to [c]. *)
-val put_on_board : int -> int -> char -> state -> state
+val put_on_board : int * int -> char -> state -> state
 
 (** [is_row lst b] returns whether [lst] contains coordinates that can be placed
     all in a single row or column, and whether the placement is valid for [b].

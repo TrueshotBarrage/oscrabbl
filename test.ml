@@ -73,6 +73,26 @@ module ScrabbleTestMaker = struct
 end
 
 module StateTestMaker = struct
+  let st1 = 
+    init_state () |> put_on_board (7,7) 'A' |> put_on_board (7,8) 'P'
+    |> put_on_board (7,9) 'P' |> put_on_board (7,10) 'L' 
+    |> put_on_board (7,11) 'E'
+  let st1_add_col = 
+    set_board st1; 
+    st1 |> put_on_board (5,12) 'Y' |> put_on_board (6,12) 'E'
+    |> put_on_board (7,12) 'S'
+  let st1_add_bad_col =
+    st1 |> put_on_board (9,7) 'R' |> put_on_board (10,7) 'M'
+    |> put_on_board (11,7) 'S'
+
+  let st2 = 
+    init_state () |> put_on_board (5,7) 'Y' |> put_on_board (6,7) 'E'
+    |> put_on_board (7,7) 'E' |> put_on_board (8,7) 'T'
+  let st2_add_row = 
+    set_board st2;
+    st2 |> put_on_board (8,8) 'R' |> put_on_board (8,9) 'E'
+    |> put_on_board (8,10) 'E'
+
   (** [test_init_bag name res] constructs a test for 
       [init_bag] and matches its result with [res]. *)
   let test_init_bag (name : string) (res : (char * int) array) : test =
@@ -92,10 +112,6 @@ module StateTestMaker = struct
           ~printer:string_of_int
           res (scrabble_dictionary |> size))
 
-  (* let print_dictionary (name : string) (res : unit) : test = 
-     name >:: (fun _ ->
-        assert_equal () (scrabble_dictionary)) *)
-
   (** [test_valid_words_member name word res] constructs a test for [member] 
       [word] of the Scrabble Dictionary and matches its result with [res]. *)
   let test_valid_words_member
@@ -107,6 +123,7 @@ module StateTestMaker = struct
           ~printer:string_of_bool
           res (scrabble_dictionary |> member word))
 
+  (** [pp_string_opt str] pretty-prints a string option [str]. *)
   let pp_string_opt (str : string option) = 
     match str with
     | None -> "No words found"
@@ -122,21 +139,44 @@ module StateTestMaker = struct
           ~printer:pp_string_opt
           res (scrabble_dictionary |> choose))
 
+  (** [test_fill_player_hand name hand] constructs a test for [fill_player_hand 
+      init_state.player_hand] and matches whether it is fully filled. *)
   let test_fill_player_hand
       (name : string) 
       (hand : int) : test = 
     name >:: (fun _ -> 
         assert_equal 
           ~printer:string_of_int
-          7 (List.length (fill_player_hand init_state).player_hand))
+          7 (List.length (fill_player_hand (init_state ())).player_hand))
 
+  (** [test_fill_bot_hand name hand] constructs a test for [fill_bot_hand 
+        init_state.bot_hand] and matches whether it is fully filled. *)
   let test_fill_bot_hand
       (name : string) 
       (hand : int) : test = 
     name >:: (fun _ -> 
         assert_equal 
           ~printer:string_of_int
-          7 (List.length (fill_bot_hand init_state).bot_hand))
+          7 (List.length (fill_bot_hand (init_state ())).bot_hand))
+
+  (** [test_is_row name coords board res] constructs a test for [is_row coords 
+      board] and matches its result with [res]. *)
+  let test_is_row
+      (name : string) 
+      (coords : (int * int) list)
+      (board : board) 
+      (res : bool) : test = 
+    name >:: (fun _ -> 
+        assert_equal 
+          ~printer:string_of_bool
+          res (is_row coords board))
+
+  let test_is_row_exn
+      (name : string) 
+      (coords : (int * int) list)
+      (board : board) : test = 
+    name >:: (fun _ -> 
+        assert_raises (InvalidTilePlacement) (fun () -> is_row coords board))
 
   let tests = [
     test_init_bag "Test initialization of letter bag" 
@@ -153,6 +193,12 @@ module StateTestMaker = struct
     test_valid_words_choose "Test to see if anything in dict" (Some "LAMINAL");
     test_fill_player_hand "Test random player hand" 7;
     test_fill_bot_hand "Test random bot hand" 7;
+    test_is_row "Test a valid column placement" [(5,12); (6,12); (7,12)] 
+      st1_add_col.board false;
+    test_is_row "Test a valid row placement" [(8,8); (8,9); (8,10)] 
+      st2_add_row.board true;
+    test_is_row_exn "Test an invalid column placement" [(9,7); (10,7); (11,7)] 
+      st1_add_bad_col.board;
   ]
 end
 

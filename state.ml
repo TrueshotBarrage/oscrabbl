@@ -2,6 +2,7 @@ open Scrabble
 
 exception InvalidTilePlacement
 exception InvalidWords
+
 (** [repeat f n st] applies [f] to [st] [n] times. *)
 let rec repeat f n st = 
   if n > 0 then repeat f (n-1) (f st)
@@ -240,7 +241,7 @@ let remove_letter_from_player_hand char st : state =
 let remove_letter_from_bot_hand char st : state = 
   update_bot_hand (remove_letter_from_hand char) st
 
-let put_on_board x y c st = 
+let put_on_board (x,y) c st = 
   let letter = letter_of_char c in 
   let tile = st.board.(x).(y) in 
   if tile.status = Set then raise InvalidTilePlacement
@@ -257,40 +258,44 @@ let put_on_board x y c st =
     }
 
 let is_row lst b = 
-  let is_filled (x,y) = 
+  let is_set (x,y) = 
     match b.(x).(y).status with 
-    | Empty -> false
-    | Filled | Set -> true in 
-  let adjacent_squares i j = 
+    | Empty | Filled -> false
+    | Set -> true in 
+
+  let adjacent_squares (i,j) = 
     let output = ref [] in 
     if i + 1 <= 14 then output := (i+1, j)::!output;
     if i - 1 >= 0 then output := (i-1, j)::!output;
     if j + 1 <= 14 then output := (i, j+1)::!output;
     if j - 1 >= 0 then output := (i, j-1)::!output;
-    !output
-  in 
+    !output in 
+
+  let checkable_coords accum coord =
+    let rec loop acc lst = 
+      match lst with 
+      | [] -> acc
+      | h::t -> if List.mem h acc then loop acc t else loop (h::acc) t in 
+    loop accum (adjacent_squares coord) in 
+
   let rec is_connected coords board =
-    match coords with 
-    | [] -> true
-    | (i,j)::rest -> check_adjacent_squares (i,j) rest board
-  and check_adjacent_squares (i,j) rst brd = 
-    let rec loop tiles = 
-      match tiles with
-      | [] -> is_connected rst brd
-      | h::t -> if is_filled h then is_connected rst brd 
-        else loop t
-    in loop (adjacent_squares i j)
-  in 
+    let adj_tiles = coords |> List.fold_left checkable_coords [] in 
+    let rec check_adj_tiles tls = 
+      match tls with 
+      | [] -> false
+      | h::t -> if is_set h then true else check_adj_tiles t in 
+    check_adj_tiles adj_tiles in 
+
   match lst with 
   | [] -> raise InvalidTilePlacement
   | [_] -> if is_connected lst b then true else raise InvalidTilePlacement
   | h::t -> 
-    let is_col_placement x xl = 
+    let is_row_placement x xl = 
       List.fold_left (fun bool elt -> bool && fst elt = x) true xl in 
-    let is_row_placement y yl = 
+    let is_col_placement y yl = 
       List.fold_left (fun bool elt -> bool && snd elt = y) true yl in 
-    let is_r = is_row_placement (snd h) t in 
-    if is_r <> is_col_placement (fst h) t && is_connected lst b then is_r 
+    let is_r = is_row_placement (fst h) t in 
+    if (is_r <> is_col_placement (snd h) t) && is_connected lst b then is_r 
     else raise InvalidTilePlacement
 
 (** [check_word tlst] is whether the English word formed by the letters of 
@@ -402,7 +407,7 @@ let change_score_bot f st =
     bot_score = f (st)
   }
 
-let init_state : state = 
+let init_state () : state = 
   {
     board = init_board ();
     player_hand = [];

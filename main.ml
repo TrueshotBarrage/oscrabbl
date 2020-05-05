@@ -16,6 +16,9 @@ let pp_b = pp_color ANSITerminal.cyan
 (** [pp_m str] is a shorthand for [pp_color ANSITerminal.magenta str]. *)
 let pp_m = pp_color ANSITerminal.magenta
 
+(** [pp_w str] is a shorthand for [pp_color ANSITerminal.white str]. *)
+let pp_w = pp_color ANSITerminal.white
+
 (** [print_tile_top t] pretty-prints [t]'s upper half, ASCII style. *)
 let print_tile_top t = 
   match t.status with 
@@ -34,7 +37,7 @@ let print_tile_top t =
     (t.letter |> fst |> Char.escaped) ^ "  " |> pp_m;
     pp_y "|"
   | Set -> 
-    (t.letter |> fst |> Char.escaped) ^ "  " |> pp_m;
+    (t.letter |> fst |> Char.escaped) ^ "  " |> pp_w;
     pp_y "|"
 
 (** [print_tile_top t] pretty-prints [t]'s lower half, ASCII style. *)
@@ -45,20 +48,18 @@ let print_tile_bottom t =
       let value = t.letter |> snd in 
       let print_value () = 
         if value > 9 then pp_m (string_of_int value) 
-        else (
-          pp_y "_";
-          pp_m (string_of_int value)
-        ) in 
+        else (pp_y "_"; pp_m (string_of_int value)) in 
       pp_y "_";
       print_value (); 
       pp_y "|"
     end
   | Set -> begin
       let value = t.letter |> snd in 
-      let value_str = 
-        if value > 9 then string_of_int value else "_" ^ string_of_int value in 
+      let print_value () = 
+        if value > 9 then pp_w (string_of_int value) 
+        else (pp_y "_"; pp_w (string_of_int value)) in 
       pp_y "_"; 
-      pp_m value_str;
+      print_value ();
       pp_y "|"
     end
 
@@ -82,10 +83,15 @@ let print_board b =
   pp_b "\n     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14 \n"
 
 let main () =
-  let init = init_state in 
-  let s = init |> put_on_board 7 7 'Z' in 
-  print_board s.board;
-  let _ = s |> reset_board in print_board s.board
+  let init = init_state () in 
+  let s = init |> put_on_board (7,7) 'H' |> put_on_board (7,8) 'E' 
+          |> put_on_board (7,9) 'Y' in 
+  set_board s;
+  let test_coords = [(7,10); (7,11); (7,12)] in 
+  let s' = s |> put_on_board (7,10) 'M' |> put_on_board (7,11) 'A' 
+           |> put_on_board (7,12) 'N' in 
+  is_row test_coords s'.board |> string_of_bool |> print_endline; 
+  print_board s.board
 
 (* Execute the game engine. *)
 let () = main ()
