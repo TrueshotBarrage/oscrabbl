@@ -243,23 +243,20 @@ let remove_letter_from_bot_hand char st : state =
 let put_on_board x y c st = 
   let letter = letter_of_char c in 
   let tile = st.board.(x).(y) in 
-  let tile' = {
-    tile with 
-    status = Filled;
-    letter = letter
-  } in 
-  st.board.(x).(y) <- tile';
-  {
-    st with
-    coords = (x,y)::st.coords
-  }
+  if tile.status = Set then raise InvalidTilePlacement
+  else
+    let tile' = {
+      tile with 
+      status = Filled;
+      letter = letter
+    } in 
+    st.board.(x).(y) <- tile';
+    {
+      st with
+      coords = (x,y)::st.coords
+    }
 
-(** [is_row lst b] returns whether [lst] contains coordinates that can be placed
-    all in a single row or column, and whether the placement is valid for [b].
-    Raises: [InvalidTilePlacement] if [lst] contains coordinates of multiple
-    rows, columns, or both; also raised if [lst] does not form a connected 
-    (aka valid) board state if inserted. *)
-let is_valid_row lst b = 
+let is_row lst b = 
   let is_filled (x,y) = 
     match b.(x).(y).status with 
     | Empty -> false
@@ -304,9 +301,8 @@ let check_word tlst =
   let word = List.fold_left string_of_tile "" tlst in 
   valid_words |> TreeSet.member word
 
-(** [column_word b coords] checks a column of tiles for any word formed 
-    by tile placement on [b], then returns the list of words as a 
-    [tile tile list]. *)
+(** [column_word b coord] checks a column of tiles for any word formed by tile 
+    placement on [b], then returns the list of words as a [tile list]. *)
 let column_word b (x,y) =
   let rec column_up x y b acc = 
     if y = 0 then acc
@@ -315,8 +311,21 @@ let column_word b (x,y) =
   let rec column_down x y b acc = 
     if y = 14 then acc
     else if b.(x).(y).status = Empty then acc 
-    else column_up x (y+1) b (acc @ [b.(x).(y)]) in 
+    else column_down x (y+1) b (acc @ [b.(x).(y)]) in 
   column_up x y b [] @ (b.(x).(y)::column_down x y b [])
+
+(** [row_word b coord] checks a row of tiles for any word formed by tile 
+    placement on [b], then returns the list of words as a [tile list]. *)
+let row_word b (x,y) = 
+  let rec row_left x y b acc = 
+    if x = 0 then acc 
+    else if b.(x).(y).status = Empty then acc 
+    else row_left (x-1) y b (b.(x).(y)::acc) in 
+  let rec row_right x y b acc = 
+    if x = 14 then acc 
+    else if b.(x).(y).status = Empty then acc 
+    else row_right (x+1) y b (acc @ [b.(x).(y)]) in 
+  row_left x y b [] @ (b.(x).(y)::row_right x y b [])
 
 (** [score_of_word bonus score tlst] is the score of the word given by [tlst], 
     with initial [score] of 0 and a [bonus] of 1 for regular usage. *)
@@ -333,8 +342,10 @@ let rec score_of_word mult acc tlst =
 (** [score_of_words coords b] is the sum total of the score to be added for a
     given [coords] list in [b]. *)
 let score_of_words coords b = 
-  if is_valid_row coords b then 
-    let word_list = List.map (column_word b) coords in 
+  if is_row coords b then 
+    (* using List.hd is fine here; is_row throws an exception if empty *)
+    let word_list = 
+      row_word b (List.hd coords)::List.map (column_word b) coords in 
     let words_are_valid = 
       List.fold_left (fun acc tlst -> acc && check_word tlst) true word_list in 
     if words_are_valid then 
@@ -388,7 +399,7 @@ let confirm_player_turn f st =
 let change_score_bot f st = 
   {
     st with 
-    bot_score = f (st.bot_score)
+    bot_score = f (st)
   }
 
 let init_state : state = 
