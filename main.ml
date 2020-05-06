@@ -44,13 +44,13 @@ let test5 st = st |> fill_player_hand |> fill_bot_hand
 
 let main () =
   ANSITerminal.resize 125 36;
-  let st0 = init_state () in
-  let st1 = test0 st0 in 
-  let st2 = test1 st1 in 
-  let st3 = test2 st2 in 
-  let st4 = test3 st3 in 
-  let st5 = test4 st4 in 
-  let st = test5 st5 in 
+  let st = init_state () |> fill_player_hand |> fill_bot_hand in
+  (* let st1 = test0 st in 
+     let st2 = test1 st1 in 
+     let st3 = test2 st2 in 
+     let st4 = test3 st3 in 
+     let st5 = test4 st4 in 
+     let st = test5 st5 in  *)
   let _ = Sys.command "clear" in 
   print_endline "Welcome to OScrabbl! Currently in development :)";
   print_board st;

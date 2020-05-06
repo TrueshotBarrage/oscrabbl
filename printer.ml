@@ -153,13 +153,10 @@ let print_row pad st i arr =
 let print_board st = 
   let padding = "       " in 
   print_string padding;
-  pp_b "     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14 \n";
-  flush stdout;
+  pp_b "     0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  \n";
   print_string padding;
-  pp_y "   _____________________________________________________________\n";
-  flush stdout;
+  pp_y "    ___________________________________________________________ \n";
   Array.iteri (print_row padding st) st.board;
   print_string "\n";
   print_string padding;
-  pp_b "     0   1   2   3   4   5   6   7   8   9   10  11  12  13  14 \n";
-  flush stdout
+  pp_b "     0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  \n"
