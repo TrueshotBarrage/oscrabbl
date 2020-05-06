@@ -1,4 +1,4 @@
-MODULES=state authors main scrabble dictionary treeDictionary dictionarySet
+MODULES=authors dictionary dictionarySet main printer scrabble state treeDictionary 
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)

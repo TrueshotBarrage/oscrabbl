@@ -1,6 +1,6 @@
 module type StateSig = sig
   type state
-  val init_state : state
+  val init_state : unit -> state
   val fill_player_hand : state -> state
   val fill_bot_hand : state -> state
 end

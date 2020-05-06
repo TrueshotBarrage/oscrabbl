@@ -3,6 +3,7 @@
 #directory "_build";;
 #load_rec "dictionary.cmo";;
 #load_rec "dictionarySet.cmo";;
-#load_rec "treeDictionary.cmo";;
+#load_rec "printer.cmo";;
 #load_rec "scrabble.cmo";;
 #load_rec "state.cmo";;
+#load_rec "treeDictionary.cmo";;

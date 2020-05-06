@@ -16,6 +16,7 @@ type state = {
   coords: (int * int) list;
   available_letters: char list;
   checked_words: (string, unit) Hashtbl.t;
+  history: (string * string * int) list;
   player_score: int;
   bot_score: int;
 }
@@ -301,14 +302,18 @@ let is_row lst b =
     else if List.mem (7,7) lst then is_r 
     else raise InvalidTilePlacement
 
+(** [string_of_tile_list tlst] is the string of the letters in [tlst]. *)
+let string_of_tile_list tlst = 
+  let string_of_tile str tile =
+    str ^ (tile.letter |> fst |> Char.escaped) in 
+  List.fold_left string_of_tile "" tlst
+
 (** [check_word tlst st] is whether the English word formed by the letters of 
     [tlst], in order of reverse-insertion (from left to right). *)
 let check_word tlst st = 
   if tlst = [] then true 
   else 
-    let string_of_tile str tile =
-      str ^ (tile.letter |> fst |> Char.escaped) in 
-    let word = List.fold_left string_of_tile "" tlst in 
+    let word = string_of_tile_list tlst in 
     if Hashtbl.mem st.checked_words word then true 
     else if valid_words |> TreeSet.member word 
     then (Hashtbl.add st.checked_words word (); true)
@@ -363,7 +368,10 @@ let score_move st =
       row_word st.board (List.hd st.coords)::List.map (column_word st.board) 
         st.coords in 
     if is_valid_wlst word_list then 
-      List.fold_left (fun acc word -> acc + score_of_word 1 0 word) 0 word_list
+      (List.fold_left (
+          fun acc word -> acc + score_of_word 1 0 word
+          (* again, fine here because at least one word would be played *)
+        ) 0 word_list, string_of_tile_list (List.hd word_list)) 
     else raise InvalidWords
   else
     (* using List.hd is fine here; is_row throws an exception if empty *)
@@ -371,7 +379,10 @@ let score_move st =
       column_word st.board (List.hd st.coords)::List.map (row_word st.board) 
         st.coords in 
     if is_valid_wlst word_list then 
-      List.fold_left (fun acc word -> acc + score_of_word 1 0 word) 0 word_list
+      (List.fold_left (
+          fun acc word -> acc + score_of_word 1 0 word
+          (* again, fine here because at least one word would be played *)
+        ) 0 word_list, string_of_tile_list (List.hd word_list))
     else raise InvalidWords
 
 let reset_coords st = {
@@ -403,31 +414,53 @@ let reset_board st =
     st.board.(x).(y) <- new_tile in 
   List.iter reset_tile st.coords
 
+let set_history pl wd s st = 
+  if List.length st.history < 4 then {
+    st with
+    history = (pl, wd, s)::st.history
+  } else
+    let rec shift_list lst acc = 
+      match lst with 
+      | [] -> acc
+      | [e] -> acc
+      | h::t -> shift_list t (h::acc) in {
+      st with 
+      history = (pl, wd, s)::shift_list st.history []
+    }
+
 let confirm_player_turn st = 
-  let updated_score = score_move st in 
+  let updated_score_and_int = score_move st in 
+  let score = fst updated_score_and_int in 
+  let word = snd updated_score_and_int in 
   let st' = {
     st with 
-    player_score = updated_score + st.player_score
+    player_score = score + st.player_score
   } in 
-  set_board st'; reset_coords st'
+  set_board st'; st' |> reset_coords |> set_history "Player" word score 
 
 let confirm_bot_turn st = 
-  let updated_score = score_move st in 
+  let updated_score_and_int = score_move st in 
+  let score = fst updated_score_and_int in 
+  let word = snd updated_score_and_int in 
   let st' = {
     st with 
-    bot_score = updated_score + st.bot_score
+    bot_score = score + st.bot_score
   } in 
-  set_board st'; reset_coords st'
+  set_board st'; st' |> reset_coords |> set_history "Bot" word score 
 
-let init_state () : state = 
-  {
-    board = init_board ();
-    player_hand = [];
-    bot_hand = [];
-    coords = [];
-    letter_bag = init_bag ();
-    available_letters = init_available_letters;
-    checked_words = Hashtbl.create 20;
-    player_score = 0;
-    bot_score = 0;
-  }
+let init_state () : state = {
+  board = init_board ();
+  player_hand = [];
+  bot_hand = [];
+  letter_bag = init_bag ();
+  coords = [];
+  available_letters = init_available_letters;
+  checked_words = Hashtbl.create 20;
+  history = [];
+  player_score = 0;
+  bot_score = 0;
+}
+
+type result = Valid of state | Invalid of exn 
+
+let make_move (x,y) c st = Valid st

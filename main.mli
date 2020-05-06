@@ -1,13 +1,13 @@
 (** 
    The main entry point for the game interface.
 *)
-
+open State
 open Scrabble
+open Printer
 
-val check_file : string -> string
-
-(** [print_board b] pretty-prints a game board [b]. *)
-val print_board : board -> unit
+(** [continue st] recursively keeps the game going by updating the state, 
+    flushing and printing the board, then reprompting the user. *)
+val continue : state -> unit
 
 (** [main ()] prompts for the game to play, then starts it. *)
 val main : unit -> unit
