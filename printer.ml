@@ -77,7 +77,7 @@ let print_scores i st =
   else if i = 29 then (
     pp_b "  Player: "; st.player_score |> string_of_int |> pp_g; 
     pp_g " points  "; pp_w "<>"; 
-    pp_b "  Bot: "; st.player_score |> string_of_int |> pp_r; pp_r " points  ")
+    pp_b "  Bot: "; st.bot_score |> string_of_int |> pp_r; pp_r " points  ")
 
 (** [print_misc i st] prints everything other than the board in [st]. *)
 let print_misc i st = 
