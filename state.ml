@@ -17,6 +17,7 @@ type state = {
   available_letters: char list;
   checked_words: (string, unit) Hashtbl.t;
   history: (string * string * int) list;
+  player_turn: bool;
   player_score: int;
   bot_score: int;
 }
@@ -113,12 +114,8 @@ let init_board () : board =
   set_board_modifiers (arr); 
   arr
 
-(** [index c] is the 0-based index of [c] in the alphabet. 
-    If [c] is the space character [' '] with ASCII code 32, return -33. *)
 let index c = Char.code c - 65
 
-(** [index' n] is the reverse operation of [index c]. 
-    [index' -33] is the space character [' ']. *)
 let index' n = Char.chr (n + 65)
 
 let init_bag () = 
@@ -215,27 +212,19 @@ let update_bot_hand f st =
     at the start of the game. *)
 let init_available_letters = List.map fst bucket
 
-let rec fill_player_hand st : state =
-  if List.length st.player_hand = 7 || st.available_letters == [] then st
+let rec fill_hand st : state = 
+  let update_hand, hand =
+    if st.player_turn then update_player_hand, st.player_hand 
+    else update_bot_hand, st.bot_hand in
+  if List.length hand = 7 || st.available_letters == [] then st
   else 
     let len_avail = List.length st.available_letters in 
     Random.self_init ();
     let rand = Random.int len_avail in 
     let random_char = List.nth st.available_letters rand in 
     let st' = update_available_letters true random_char st in 
-    let st'' = update_player_hand (add_letter_to_hand random_char) st' in 
-    fill_player_hand st''
-
-let rec fill_bot_hand st : state = 
-  if List.length st.bot_hand = 7 || st.available_letters == [] then st
-  else 
-    let len_avail = List.length st.available_letters in 
-    Random.self_init ();
-    let rand = Random.int len_avail in 
-    let random_char = List.nth st.available_letters rand in 
-    let st' = update_available_letters true random_char st in 
-    let st'' = update_bot_hand (add_letter_to_hand random_char) st' in 
-    fill_bot_hand st''
+    let st'' = update_hand (add_letter_to_hand random_char) st' in 
+    fill_hand st''
 
 let remove_letter_from_player_hand char st : state = 
   update_player_hand (remove_letter_from_hand char) st
@@ -428,25 +417,28 @@ let set_history pl wd s st =
       history = (pl, wd, s)::shift_list st.history []
     }
 
-let confirm_player_turn st = 
+let confirm_turn st = 
   let updated_score_and_int = score_move st in 
   let score = fst updated_score_and_int in 
   let word = snd updated_score_and_int in 
-  let st' = {
-    st with 
-    player_score = score + st.player_score
-  } in 
-  set_board st'; st' |> reset_coords |> set_history "Player" word score 
+  if st.player_turn then (
+    let st' = {
+      st with 
+      player_score = score + st.player_score;
+      player_turn = false
+    } in set_board st'; st' |> reset_coords |> set_history "Player" word score
+  ) else (
+    let st' = {
+      st with 
+      bot_score = score + st.bot_score;
+      player_turn = true
+    } in set_board st'; st' |> reset_coords |> set_history "Bot" word score
+  )
 
-let confirm_bot_turn st = 
-  let updated_score_and_int = score_move st in 
-  let score = fst updated_score_and_int in 
-  let word = snd updated_score_and_int in 
-  let st' = {
-    st with 
-    bot_score = score + st.bot_score
-  } in 
-  set_board st'; st' |> reset_coords |> set_history "Bot" word score 
+let pass_turn st = {
+  st with 
+  player_turn = not st.player_turn
+}
 
 let init_state () : state = {
   board = init_board ();
@@ -457,6 +449,7 @@ let init_state () : state = {
   available_letters = init_available_letters;
   checked_words = Hashtbl.create 20;
   history = [];
+  player_turn = Random.bool ();
   player_score = 0;
   bot_score = 0;
 }

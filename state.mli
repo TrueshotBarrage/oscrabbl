@@ -13,21 +13,26 @@ type state = {
   available_letters: char list;
   checked_words: (string, unit) Hashtbl.t;
   history: (string * string * int) list;
+  player_turn: bool;
   player_score: int;
   bot_score: int;
 }
+
+(** [index c] is the 0-based index of [c] in the alphabet. 
+    If [c] is the space character [' '] with ASCII code 32, return -33. *)
+val index : char -> int
+
+(** [index' n] is the reverse operation of [index c]. 
+    [index' -33] is the space character [' ']. *)
+val index' : int -> char
 
 (** [init_bag] is the starting bag associative array of letters to 
     their quantities. *)
 val init_bag : unit -> (char * int) array
 
-(** [fill_player_hand st] fills the player's hand up to seven letters by 
+(** [fill_hand st] fills the player's hand up to seven letters by 
     taking them out of the bag. *)
-val fill_player_hand : state -> state
-
-(** [fill_bot_hand st] fills the bot's hand up to seven letters by 
-    taking them out of the bag. *)
-val fill_bot_hand : state -> state
+val fill_hand : state -> state
 
 (** [remove_letter_from_player_hand c st] removes the letter corresponding to 
     [c] from the player's hand in [st]. *)
@@ -66,17 +71,14 @@ val reset_board : state -> unit
     according to which player [pl] played word [wd] for [s] points in [st]. *)
 val set_history : string -> string -> int -> state -> state
 
-(** [confirm_player_turn st] attempts to score the newly filled tiles by the 
+(** [confirm_turn st] attempts to score the newly filled tiles by the 
     player, and on success, accumulates the points to the player's score. The 
     board is updated with the filled letters to be permanently set, and the
     coordinates of the filled tiles is reset. *)
-val confirm_player_turn : state -> state
+val confirm_turn : state -> state
 
-(** [confirm_bot_turn st] attempts to score the newly filled tiles by the bot, 
-    and on success, accumulates the points to the bot's score. The board is 
-    updated with the filled letters to be permanently set, and the coordinates 
-    of the filled tiles is reset. *)
-val confirm_bot_turn : state -> state
+(** [pass_turn st] is the new state with the current player's turn passed. *)
+val pass_turn : state -> state
 
 (** [init_state ()] is the initial state of every starting board.
     No letters have been distributed to players at this stage. *)

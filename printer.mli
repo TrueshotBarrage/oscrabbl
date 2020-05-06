@@ -20,5 +20,15 @@ val pp_r : string -> unit
 (** [pp_g str] is a shorthand for [pp_color ANSITerminal.green str]. *)
 val pp_g : string -> unit
 
+(** [pp_bl str] is a shorthand for [pp_color ANSITerminal.blue str]. *)
+val pp_bl : string -> unit
+
+(** [pp_rainbow str] pretty-prints [str] with rainbow colors. *)
+val pp_rainbow : string -> unit
+
 (** [print_board st] pretty-prints a game board in [st]. *)
 val print_board : state -> unit
+
+(** [print_turn_prompt st] prints a prompt, indicating whose turn it is in [st],
+    and if it is the player's turn, asks what the player will do. *)
+val print_turn_prompt : state -> unit

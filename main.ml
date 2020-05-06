@@ -1,15 +1,107 @@
-open State
-open Scrabble
+open Command
 open Printer
+open Scrabble
+open State
 
-let rec continue st = 
+(** [put wc_opt ch (i,j) st] updates [st] with the "put" command to put [ch] 
+    at [(i,j)], possibly with the wildcard "*" tile. *)
+let put wc_opt ch (i,j) st = failwith "Unimplemented"
+
+(** [exchange ch_list st] updates [st] with the "exchange" command to exchange 
+    all the letters in [ch_list] from the bag in [st]. *)
+let exchange ch_list st = failwith "Unimplemented"
+
+(** [explode str] converts [str] to a [char list]. *)
+let explode str =
+  let rec exp i acc = if i < 0 then acc else exp (i - 1) (str.[i]::acc) in
+  exp (String.length str - 1) []
+
+(** [classify_put_cmd wc_opt l i' j' st] updates [st] with the "put" command 
+    parameters [l], [i'], [j'], and possibly "*" for the wildcard character. *)
+let classify_put_cmd (wc_opt : string option) l i' j' st = 
+  let i_opt = int_of_string_opt i' in 
+  let j_opt = int_of_string_opt j' in 
+  let ch_list = l |> String.uppercase_ascii |> explode in 
+  match ch_list, i_opt, j_opt with 
+  | [ch], Some i, Some j -> 
+    let idx = index ch in 
+    if idx >= 0 && idx < 26 then put wc_opt ch (i,j) st
+    else pp_r "Can't put that on the board. It's not a valid letter!"; st
+  | _ -> pp_r {|Please enter a valid move. Example: "put A at 3 4"|}; st
+
+let rec update_state cmd st : state = 
+  match parse cmd with
+  | exception Empty -> pp_r "You didn't type anything."; st 
+  | exception Malformed -> 
+    pp_r "Please enter a valid move. If you need help, type \"help\" for a lis\
+          t of supported commands."; st 
+  | Put (l::"at"::i'::[j']) -> classify_put_cmd None l i' j' st
+  | Put ("*"::"as"::l::"at"::i'::[j']) -> classify_put_cmd (Some "*") l i' j' st
+  | Put _ -> 
+    pp_r "The \"put\" command wasn't understood correctly. If you need help, t\
+          ype \"help\" for a list of supported commands."; st
+  | Confirm -> confirm_turn st
+  | Exchange lst -> 
+    if List.fold_left (fun b str -> b && String.length str = 1) true lst 
+    && List.length lst <= 7
+       (* Using [List.hd] is fine here; we checked every element has len 1 *)
+    then let ch_list = List.map (fun str -> str |> explode |> List.hd) lst 
+      in exchange ch_list st 
+    else st
+  | Help -> print_help st; st
+  | Pass -> pass_turn st
+  | Quit -> pp_y "Thanks for playing!\n"; exit 0 
+
+(** [print_help st] toggles the help manual for the game. Using this while 
+    the help manual is shown will close the manual. *)
+and print_help st = 
+  let _ = Sys.command "clear" in 
+  print_endline "\n\n\n";
+  pp_y 
+    "Welcome to OScrabbl! OScrabbl is a REPL-style Scrabble game designed for t\
+     he command line interface.\nThe rules are almost identical to real-life Sc\
+     rabble.\n\n\n";
+  pp_g "List of supported commands:\n";
+  pp_y "\"Put "; pp_m "<letter>"; pp_y " at "; pp_m "<row> <col>"; pp_y "\" ";
+  pp_b "attempts to place your tile of "; pp_m "<letter>"; 
+  pp_b " at the coordinates of ("; pp_m "<row>"; pp_b ", "; pp_m "<col>"; 
+  pp_b 
+    ").\nThe tile must not already be occupied by another letter, and you mus\
+     t have "; pp_m "<letter>"; pp_b " in your hand!\n\n";
+  pp_y 
+    "\"Put * as "; pp_m "<letter>"; pp_y " at "; pp_m "<row> <col>"; pp_y "\" ";
+  pp_b 
+    "is the same as the above, but allows you to play a wildcard as any lette\
+     r of your choice.\n\n";
+  pp_y "\"Confirm\" ";
+  pp_b 
+    "is used after putting tiles onto the board to confirm your tile placemen\
+     t and to end your turn.\nIf successful, you will be awarded the the point\
+     s for your word(s), and your hand will be refilled.\n\n";
+  pp_y "\"Exchange "; pp_m "<letter1> <letter2>"; pp_y " ...\" ";
+  pp_b
+    "allows you to replace any number of your letters with new ones from the ba\
+     g.\nHowever, be aware that exchanging your tiles will end your turn.\n\n";
+  pp_y "\"Pass\" "; pp_b "skips your turn, without committing any action.\n\n";
+  pp_y "\"Help\" "; pp_b "toggles this help manual.\n\n";
+  pp_y "\"Quit\" "; pp_b "exits the game.\n\n";
+  pp_w "Enter any key to close this help manual.\n\n\n";
+  pp_g "Developed by "; pp_rainbow "Tim Tran"; 
+  pp_g " and "; pp_rainbow "David Kim"; pp_g " for CS 3110 in Spring 2020.\n";
+  flush stdout;
+  match read_line () with
+  | exception End_of_file -> ()
+  | _ -> ()
+
+and continue st = 
   match read_line () with
   | exception End_of_file -> ()
   | cmd -> begin
-      let st' = st in 
+      let st' = update_state cmd st in 
       let _ = Sys.command "clear" in 
       print_endline " ";
       print_board st';
+      print_turn_prompt st';
       print_string "> ";
       flush stdout;
       continue st'
@@ -18,33 +110,33 @@ let rec continue st =
 (** [test0 st] is a new state with a test set of actions applied to [st]. *)
 let test0 st = 
   st |> put_on_board (7,7) 'H' |> put_on_board (7,8) 'E' 
-  |> put_on_board (7,9) 'Y' |> confirm_player_turn
+  |> put_on_board (7,9) 'Y' |> confirm_turn
 
 (** [test1 st] is a new state with a test set of actions applied to [st]. *)
 let test1 st = 
   st |> put_on_board (8,7) 'E' |> put_on_board (9,7) 'L'
-  |> put_on_board (10,7) 'L' |> put_on_board (11,7) 'O' |> confirm_bot_turn
+  |> put_on_board (10,7) 'L' |> put_on_board (11,7) 'O' |> confirm_turn
 
 (** [test2 st] is a new state with a test set of actions applied to [st]. *)
 let test2 st = 
-  st |> put_on_board (6,8) 'Y' |> put_on_board (8,8) 'S' |> confirm_player_turn
+  st |> put_on_board (6,8) 'Y' |> put_on_board (8,8) 'S' |> confirm_turn
 
 (** [test3 st] is a new state with a test set of actions applied to [st]. *)
 let test3 st = 
   st |> put_on_board (8,6) 'Y' |> put_on_board (9,6) 'E' 
-  |> put_on_board (10,6) 'A' |> put_on_board (11,6) 'H' |> confirm_bot_turn
+  |> put_on_board (10,6) 'A' |> put_on_board (11,6) 'H' |> confirm_turn
 
 (** [test4 st] is a new state with a test set of actions applied to [st]. *)
 let test4 st = 
   st |> put_on_board (11,8) 'W' |> put_on_board (11,9) 'D' 
-  |> put_on_board (11,10) 'Y' |> confirm_player_turn
+  |> put_on_board (11,10) 'Y' |> confirm_turn
 
 (** [test5 st] is a new state with a test set of actions applied to [st]. *)
-let test5 st = st |> fill_player_hand |> fill_bot_hand
+let test5 st = st |> fill_hand |> pass_turn |> fill_hand
 
 let main () =
   ANSITerminal.resize 125 36;
-  let st = init_state () |> fill_player_hand |> fill_bot_hand in
+  let st = init_state () |> fill_hand |> pass_turn |> fill_hand in
   (* let st1 = test0 st in 
      let st2 = test1 st1 in 
      let st3 = test2 st2 in 
@@ -54,6 +146,7 @@ let main () =
   let _ = Sys.command "clear" in 
   print_endline "Welcome to OScrabbl! Currently in development :)";
   print_board st;
+  print_turn_prompt st;
   print_string "> ";
   flush stdout;
   continue st

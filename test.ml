@@ -139,25 +139,17 @@ module StateTestMaker = struct
           ~printer:pp_string_opt
           res (scrabble_dictionary |> choose))
 
-  (** [test_fill_player_hand name hand] constructs a test for [fill_player_hand 
-      init_state.player_hand] and matches whether it is fully filled. *)
-  let test_fill_player_hand
+  (** [test_fill_both_hands name hand] constructs a test for [fill_hand 
+      init_state ()] for both players and matches whether it is fully filled. *)
+  let test_fill_both_hands
       (name : string) 
       (hand : int) : test = 
     name >:: (fun _ -> 
         assert_equal 
           ~printer:string_of_int
-          7 (List.length (fill_player_hand (init_state ())).player_hand))
-
-  (** [test_fill_bot_hand name hand] constructs a test for [fill_bot_hand 
-        init_state.bot_hand] and matches whether it is fully filled. *)
-  let test_fill_bot_hand
-      (name : string) 
-      (hand : int) : test = 
-    name >:: (fun _ -> 
-        assert_equal 
-          ~printer:string_of_int
-          7 (List.length (fill_bot_hand (init_state ())).bot_hand))
+          7 (List.length (
+              init_state () |> fill_hand |> pass_turn |> fill_hand
+            ).player_hand))
 
   (** [test_is_row name coords board res] constructs a test for [is_row coords 
       board] and matches its result with [res]. *)
@@ -191,8 +183,7 @@ module StateTestMaker = struct
     test_valid_words_member "Test whether 'POGCHAMP' in dict" 
       "POGCHAMP" false;
     test_valid_words_choose "Test to see if anything in dict" (Some "LAMINAL");
-    test_fill_player_hand "Test random player hand" 7;
-    test_fill_bot_hand "Test random bot hand" 7;
+    test_fill_both_hands "Test random player hand" 7;
     test_is_row "Test a valid column placement" [(5,12); (6,12); (7,12)] 
       st1_add_col.board false;
     test_is_row "Test a valid row placement" [(8,8); (8,9); (8,10)] 
