@@ -6,11 +6,12 @@ open State
 (** [put wc_opt ch (i,j) st] updates [st] with the "put" command to put [ch] 
     at [(i,j)], possibly with the wildcard "*" tile. *)
 let put wc_opt ch (i,j) st = 
-  match use_letter ch st with 
+  let ch' = if wc_opt = None then ch else ' ' in 
+  match use_letter ch' st with 
   | exception Not_found -> pp_r "You don't have "; 
-    ch |> Char.escaped |> pp_r; pp_r " in your hand."; st
+    ch' |> Char.escaped |> pp_r; pp_r " in your hand."; st
   | st' -> begin
-      match put_on_board (i,j) ch st' with 
+      match put_on_board wc_opt (i,j) ch st' with 
       | exception InvalidTilePlacement -> 
         pp_r "That square is already taken by another tile!"; st
       | st'' -> st''
@@ -18,7 +19,22 @@ let put wc_opt ch (i,j) st =
 
 (** [exchange ch_list st] updates [st] with the "exchange" command to exchange 
     all the letters in [ch_list] from the bag in [st]. *)
-let exchange ch_list st = failwith "Unimplemented"
+let exchange ch_list st = 
+  let rec remove_ls_from_hand lst state = 
+    match lst with  
+    | [] -> state
+    | h::t -> begin
+        let h = if h = '*' then ' ' else h in
+        match use_letter h state with 
+        | exception Not_found -> 
+          pp_r ("You don't have " ^ Char.escaped h ^ " in your hand!"); st
+        | st' -> remove_ls_from_hand t st'
+      end in 
+  let st' = remove_ls_from_hand ch_list st in 
+  if st = st' then st else
+    List.fold_left (
+      fun state ch -> update_available_letters false ch state
+    ) st' ch_list |> fill_hand |> pass_turn
 
 (** [explode str] converts [str] to a [char list]. *)
 let explode str =
@@ -102,6 +118,8 @@ let update_state cmd st : state =
       | exception InvalidWords -> pp_r "Cannot make that move! ";
         pp_w "At least one of the words formed by that move is invalid."; st
       | exception InvalidTilePlacement -> pp_r "Invalid tile placement!"; st
+      | exception SingleLetter -> 
+        pp_r "You need to place a valid word with at least two characters!"; st
       | st' -> st' |> fill_hand |> pass_turn
     end
   | Clear -> put_everything_back st
@@ -113,7 +131,7 @@ let update_state cmd st : state =
         fun str -> str |> String.uppercase_ascii |> explode |> List.hd
       ) lst 
       in exchange ch_list st 
-    else pp_r "Exchange should only take single letters!"; st
+    else (pp_r "Exchange should only take single letters!"; st)
   | Help -> print_help st; st
   | Pass -> st |> put_everything_back |> pass_turn
   | Quit -> pp_y "Thanks for playing!\n"; exit 0 
@@ -132,52 +150,50 @@ let rec continue st =
       continue st'
     end
 
-(** [test0 st] is a new state with a test set of actions applied to [st]. *)
-let test0 st = 
-  st |> put_on_board (7,7) 'H' |> put_on_board (7,8) 'E' 
-  |> put_on_board (7,9) 'Y' |> confirm_turn
+(* * [test0 st] is a new state with a test set of actions applied to [st].
+   let test0 st = 
+   st |> put_on_board (7,7) 'H' |> put_on_board (7,8) 'E' 
+   |> put_on_board (7,9) 'Y' |> confirm_turn
 
-(** [test1 st] is a new state with a test set of actions applied to [st]. *)
-let test1 st = 
-  st |> put_on_board (8,7) 'E' |> put_on_board (9,7) 'L'
-  |> put_on_board (10,7) 'L' |> put_on_board (11,7) 'O' |> confirm_turn
+   (** [test1 st] is a new state with a test set of actions applied to [st]. *)
+   let test1 st = 
+   st |> put_on_board (8,7) 'E' |> put_on_board (9,7) 'L'
+   |> put_on_board (10,7) 'L' |> put_on_board (11,7) 'O' |> confirm_turn
 
-(** [test2 st] is a new state with a test set of actions applied to [st]. *)
-let test2 st = 
-  st |> put_on_board (6,8) 'Y' |> put_on_board (8,8) 'S' |> confirm_turn
+   (** [test2 st] is a new state with a test set of actions applied to [st]. *)
+   let test2 st = 
+   st |> put_on_board (6,8) 'Y' |> put_on_board (8,8) 'S' |> confirm_turn
 
-(** [test3 st] is a new state with a test set of actions applied to [st]. *)
-let test3 st = 
-  st |> put_on_board (8,6) 'Y' |> put_on_board (9,6) 'E' 
-  |> put_on_board (10,6) 'A' |> put_on_board (11,6) 'H' |> confirm_turn
+   (** [test3 st] is a new state with a test set of actions applied to [st]. *)
+   let test3 st = 
+   st |> put_on_board (8,6) 'Y' |> put_on_board (9,6) 'E' 
+   |> put_on_board (10,6) 'A' |> put_on_board (11,6) 'H' |> confirm_turn
 
-(** [test4 st] is a new state with a test set of actions applied to [st]. *)
-let test4 st = 
-  st |> put_on_board (11,8) 'W' |> put_on_board (11,9) 'D' 
-  |> put_on_board (11,10) 'Y' |> confirm_turn
+   (** [test4 st] is a new state with a test set of actions applied to [st]. *)
+   let test4 st = 
+   st |> put_on_board (11,8) 'W' |> put_on_board (11,9) 'D' 
+   |> put_on_board (11,10) 'Y' |> confirm_turn
 
-(** [test5 st] is a new state with a test set of actions applied to [st]. *)
-let test5 st = st |> fill_hand |> pass_turn |> fill_hand
+   (** [test5 st] is a new state with a test set of actions applied to [st]. *)
+   let test5 st = st |> fill_hand |> pass_turn |> fill_hand
 
-(** [test6 st] is a new state with a test set of actions applied to [st]. *)
-let test6 st = st |> put_on_board (8,7) 'I' |> confirm_turn
+   (** [test6 st] is a new state with a test set of actions applied to [st]. *)
+   let test6 st = st |> put_on_board (8,7) 'I' |> confirm_turn *)
 
 let main () =
-  ANSITerminal.resize 125 36;
+  ANSITerminal.resize 125 40;
   let st = init_state () |> fill_hand |> pass_turn |> fill_hand in
-  let st1 = test0 st in 
-  let st6 = test6 st1 in 
   (*  let st3 = test2 st2 in 
       let st4 = test3 st3 in 
       let st5 = test4 st4 in 
       let st = test5 st5 in  *)
   let _ = Sys.command "clear" in 
   print_endline "Welcome to OScrabbl! Currently in development :)";
-  print_board st6;
-  print_turn_prompt st6;
+  print_board st;
+  print_turn_prompt st;
   print_string "> ";
   flush stdout;
-  continue st6
+  continue st
 
 (* Execute the game engine. *)
 let () = main ()

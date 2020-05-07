@@ -2,6 +2,7 @@ open Scrabble
 
 exception InvalidTilePlacement
 exception InvalidWords
+exception SingleLetter
 
 (** [state] is a record that indicates the state of the game. *)
 type state = {
@@ -30,6 +31,17 @@ val index' : int -> char
     their quantities. *)
 val init_bag : unit -> (char * int) array
 
+(** [update_available_letters removing c st] either: 
+    1) takes the letter corresponding to [c] from the letter bag and 
+    removes [c] from the list of available letters if the last letter 
+    of [c] was taken from the bag, if [removing].
+    Requires: The letter of [c] is in the list of available letters. 
+    or: 
+    2) adds the letter corresponding to [c] to the letter bag and adds 
+    [c] to the list of available letters if [c] does not exist in it,
+    if not [removing]. *)
+val update_available_letters : bool -> char -> state -> state
+
 (** [fill_hand st] fills the player's hand up to seven letters by 
     taking them out of the bag. *)
 val fill_hand : state -> state
@@ -40,7 +52,7 @@ val use_letter : char -> state -> state
 
 (** [put_on_bard (x,y) c st] sets the board of [st] with position [(x,y)] with 
     the letter corresponding to [c]. *)
-val put_on_board : int * int -> char -> state -> state
+val put_on_board : string option -> int * int -> char -> state -> state
 
 (** [is_row lst b] returns whether [lst] contains coordinates that can be placed
     all in a single row or column, and whether the placement is valid for [b].
