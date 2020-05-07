@@ -21,6 +21,7 @@ type object_phrase = string list
 type command = 
   | Put of object_phrase
   | Confirm
+  | Clear
   | Exchange of object_phrase
   | Pass
   | Help
@@ -47,8 +48,8 @@ exception Malformed
 
     Raises: [Malformed] if the command is malformed. A command
     is {i malformed} if the verb:
-    - is neither "put", "confirm", "exchange", "pass", "help", nor "quit"
-    - is "confirm", "pass", "help", or "quit", and there is a non-empty object 
-      phrase
+    - is none of: "put", "confirm", "clear", "exchange", "pass", "help", "quit"
+    - is "confirm", "clear", "pass", "help", or "quit", and there is a 
+      non-empty object phrase
     - is "put" or "exchange" and there is an empty object phrase. *)
 val parse : string -> command

@@ -34,13 +34,9 @@ val init_bag : unit -> (char * int) array
     taking them out of the bag. *)
 val fill_hand : state -> state
 
-(** [remove_letter_from_player_hand c st] removes the letter corresponding to 
-    [c] from the player's hand in [st]. *)
-val remove_letter_from_player_hand : char -> state -> state
-
-(** [remove_letter_from_bot_hand c st] removes the letter corresponding to 
-    [c] from the bot's hand in [st]. *)
-val remove_letter_from_bot_hand : char -> state -> state
+(** [use_letter c st] removes the letter corresponding to 
+    [c] from the current player's hand in [st]. *)
+val use_letter : char -> state -> state
 
 (** [put_on_bard (x,y) c st] sets the board of [st] with position [(x,y)] with 
     the letter corresponding to [c]. *)
@@ -66,6 +62,10 @@ val set_board : state -> unit
 
 (** [reset_board st] resets the board of any [Filled] letters. *)
 val reset_board : state -> unit
+
+(** [put_everything_back st] puts [Filled] letters on the board back to the 
+    hand from which it came, and resets the board accordingly. *)
+val put_everything_back : state -> state
 
 (** [set_history pl wd s st] sets the recent history of played words 
     according to which player [pl] played word [wd] for [s] points in [st]. *)

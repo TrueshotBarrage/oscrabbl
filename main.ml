@@ -5,7 +5,16 @@ open State
 
 (** [put wc_opt ch (i,j) st] updates [st] with the "put" command to put [ch] 
     at [(i,j)], possibly with the wildcard "*" tile. *)
-let put wc_opt ch (i,j) st = failwith "Unimplemented"
+let put wc_opt ch (i,j) st = 
+  match use_letter ch st with 
+  | exception Not_found -> pp_r "You don't have "; 
+    ch |> Char.escaped |> pp_r; pp_r " in your hand."; st
+  | st' -> begin
+      match put_on_board (i,j) ch st' with 
+      | exception InvalidTilePlacement -> 
+        pp_r "That square is already taken by another tile!"; st
+      | st'' -> st''
+    end
 
 (** [exchange ch_list st] updates [st] with the "exchange" command to exchange 
     all the letters in [ch_list] from the bag in [st]. *)
@@ -25,36 +34,15 @@ let classify_put_cmd (wc_opt : string option) l i' j' st =
   match ch_list, i_opt, j_opt with 
   | [ch], Some i, Some j -> 
     let idx = index ch in 
-    if idx >= 0 && idx < 26 then put wc_opt ch (i,j) st
-    else pp_r "Can't put that on the board. It's not a valid letter!"; st
+    if idx >= 0 && idx < 26 then 
+      if i >= 0 && i < 15 && j >= 0 && j < 15 then put wc_opt ch (i,j) st 
+      else (pp_r "Coordinates must be between 0 and 14 inclusive!"; st)
+    else (pp_r "Can't put that on the board. It's not a valid letter!"; st)
   | _ -> pp_r {|Please enter a valid move. Example: "put A at 3 4"|}; st
-
-let rec update_state cmd st : state = 
-  match parse cmd with
-  | exception Empty -> pp_r "You didn't type anything."; st 
-  | exception Malformed -> 
-    pp_r "Please enter a valid move. If you need help, type \"help\" for a lis\
-          t of supported commands."; st 
-  | Put (l::"at"::i'::[j']) -> classify_put_cmd None l i' j' st
-  | Put ("*"::"as"::l::"at"::i'::[j']) -> classify_put_cmd (Some "*") l i' j' st
-  | Put _ -> 
-    pp_r "The \"put\" command wasn't understood correctly. If you need help, t\
-          ype \"help\" for a list of supported commands."; st
-  | Confirm -> confirm_turn st
-  | Exchange lst -> 
-    if List.fold_left (fun b str -> b && String.length str = 1) true lst 
-    && List.length lst <= 7
-       (* Using [List.hd] is fine here; we checked every element has len 1 *)
-    then let ch_list = List.map (fun str -> str |> explode |> List.hd) lst 
-      in exchange ch_list st 
-    else st
-  | Help -> print_help st; st
-  | Pass -> pass_turn st
-  | Quit -> pp_y "Thanks for playing!\n"; exit 0 
 
 (** [print_help st] toggles the help manual for the game. Using this while 
     the help manual is shown will close the manual. *)
-and print_help st = 
+let print_help st = 
   let _ = Sys.command "clear" in 
   print_endline "\n\n\n";
   pp_y 
@@ -78,6 +66,11 @@ and print_help st =
     "is used after putting tiles onto the board to confirm your tile placemen\
      t and to end your turn.\nIf successful, you will be awarded the the point\
      s for your word(s), and your hand will be refilled.\n\n";
+  pp_y "\"Clear\" ";
+  pp_b 
+    "resets your turn, removing all your placed tiles from the board and puttin\
+     g them back into your hand.\nYour turn does not end, and you can still ma\
+     ke a move.\n\n";
   pp_y "\"Exchange "; pp_m "<letter1> <letter2>"; pp_y " ...\" ";
   pp_b
     "allows you to replace any number of your letters with new ones from the ba\
@@ -93,7 +86,39 @@ and print_help st =
   | exception End_of_file -> ()
   | _ -> ()
 
-and continue st = 
+let update_state cmd st : state = 
+  match parse cmd with
+  | exception Empty -> pp_r "You didn't type anything."; st 
+  | exception Malformed -> 
+    pp_r "Please enter a valid move. If you need help, type \"help\" for a lis\
+          t of supported commands."; st 
+  | Put (l::"at"::i'::[j']) -> classify_put_cmd None l i' j' st
+  | Put ("*"::"as"::l::"at"::i'::[j']) -> classify_put_cmd (Some "*") l i' j' st
+  | Put _ -> 
+    pp_r "The \"put\" command wasn't understood correctly. If you need help, t\
+          ype \"help\" for a list of supported commands."; st
+  | Confirm -> begin
+      match confirm_turn st with 
+      | exception InvalidWords -> pp_r "Cannot make that move! ";
+        pp_w "At least one of the words formed by that move is invalid."; st
+      | exception InvalidTilePlacement -> pp_r "Invalid tile placement!"; st
+      | st' -> st' |> fill_hand |> pass_turn
+    end
+  | Clear -> put_everything_back st
+  | Exchange lst -> 
+    if List.fold_left (fun b str -> b && String.length str = 1) true lst 
+    && List.length lst <= 7
+       (* Using [List.hd] is fine here; we checked every element has len 1 *)
+    then let ch_list = List.map (
+        fun str -> str |> String.uppercase_ascii |> explode |> List.hd
+      ) lst 
+      in exchange ch_list st 
+    else pp_r "Exchange should only take single letters!"; st
+  | Help -> print_help st; st
+  | Pass -> st |> put_everything_back |> pass_turn
+  | Quit -> pp_y "Thanks for playing!\n"; exit 0 
+
+let rec continue st = 
   match read_line () with
   | exception End_of_file -> ()
   | cmd -> begin
@@ -134,22 +159,25 @@ let test4 st =
 (** [test5 st] is a new state with a test set of actions applied to [st]. *)
 let test5 st = st |> fill_hand |> pass_turn |> fill_hand
 
+(** [test6 st] is a new state with a test set of actions applied to [st]. *)
+let test6 st = st |> put_on_board (8,7) 'I' |> confirm_turn
+
 let main () =
   ANSITerminal.resize 125 36;
   let st = init_state () |> fill_hand |> pass_turn |> fill_hand in
-  (* let st1 = test0 st in 
-     let st2 = test1 st1 in 
-     let st3 = test2 st2 in 
-     let st4 = test3 st3 in 
-     let st5 = test4 st4 in 
-     let st = test5 st5 in  *)
+  let st1 = test0 st in 
+  let st6 = test6 st1 in 
+  (*  let st3 = test2 st2 in 
+      let st4 = test3 st3 in 
+      let st5 = test4 st4 in 
+      let st = test5 st5 in  *)
   let _ = Sys.command "clear" in 
   print_endline "Welcome to OScrabbl! Currently in development :)";
-  print_board st;
-  print_turn_prompt st;
+  print_board st6;
+  print_turn_prompt st6;
   print_string "> ";
   flush stdout;
-  continue st
+  continue st6
 
 (* Execute the game engine. *)
 let () = main ()

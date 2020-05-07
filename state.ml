@@ -192,18 +192,13 @@ let rec remove_letter_from_hand char hand : letter list =
   | h::t -> if h = letter then t 
     else h::(remove_letter_from_hand char t)
 
-(** [update_player_hand f st] is the game state with the player's hand 
+(** [update_hand f st] is the game state with the current player's hand 
     updated by applying [f]. *)
-let update_player_hand f st = 
-  {
+let update_hand f st = 
+  if st.player_turn then {
     st with 
     player_hand = f (st.player_hand)
-  }
-
-(** [update_bot_hand f st] is the game state with the bot's hand 
-    updated by applying [f]. *)
-let update_bot_hand f st = 
-  {
+  } else {
     st with 
     bot_hand = f (st.bot_hand)
   }
@@ -213,29 +208,23 @@ let update_bot_hand f st =
 let init_available_letters = List.map fst bucket
 
 let rec fill_hand st : state = 
-  let update_hand, hand =
-    if st.player_turn then update_player_hand, st.player_hand 
-    else update_bot_hand, st.bot_hand in
+  let hand = if st.player_turn then st.player_hand else st.bot_hand in
   if List.length hand = 7 || st.available_letters == [] then st
   else 
     let len_avail = List.length st.available_letters in 
     Random.self_init ();
     let rand = Random.int len_avail in 
     let random_char = List.nth st.available_letters rand in 
-    let st' = update_available_letters true random_char st in 
-    let st'' = update_hand (add_letter_to_hand random_char) st' in 
-    fill_hand st''
+    st |> update_available_letters true random_char 
+    |> update_hand (add_letter_to_hand random_char) |> fill_hand
 
-let remove_letter_from_player_hand char st : state = 
-  update_player_hand (remove_letter_from_hand char) st
-
-let remove_letter_from_bot_hand char st : state = 
-  update_bot_hand (remove_letter_from_hand char) st
+let use_letter char st : state = 
+  update_hand (remove_letter_from_hand char) st
 
 let put_on_board (x,y) c st = 
   let letter = letter_of_char c in 
   let tile = st.board.(x).(y) in 
-  if tile.status = Set then raise InvalidTilePlacement
+  if tile.status = Set || tile.status = Filled then raise InvalidTilePlacement
   else
     let tile' = {
       tile with 
@@ -348,6 +337,11 @@ let rec score_of_word mult acc tlst =
       | Word n -> score_of_word (mult * n) (acc + snd h.letter) t
     end
 
+(** [choose lst] takes the first non-empty list element from [lst] *)
+let rec choose = function 
+  | [] -> failwith "No valid elements in list"
+  | h::t -> if h = [] then choose t else h
+
 let score_move st = 
   let is_valid_wlst wlst = 
     List.fold_left (fun acc tlst -> acc && check_word tlst st) true wlst in 
@@ -359,8 +353,7 @@ let score_move st =
     if is_valid_wlst word_list then 
       (List.fold_left (
           fun acc word -> acc + score_of_word 1 0 word
-          (* again, fine here because at least one word would be played *)
-        ) 0 word_list, string_of_tile_list (List.hd word_list)) 
+        ) 0 word_list, string_of_tile_list (choose word_list)) 
     else raise InvalidWords
   else
     (* using List.hd is fine here; is_row throws an exception if empty *)
@@ -370,8 +363,7 @@ let score_move st =
     if is_valid_wlst word_list then 
       (List.fold_left (
           fun acc word -> acc + score_of_word 1 0 word
-          (* again, fine here because at least one word would be played *)
-        ) 0 word_list, string_of_tile_list (List.hd word_list))
+        ) 0 word_list, string_of_tile_list (choose word_list))
     else raise InvalidWords
 
 let reset_coords st = {
@@ -403,6 +395,19 @@ let reset_board st =
     st.board.(x).(y) <- new_tile in 
   List.iter reset_tile st.coords
 
+(** [board_to_hand coords st] is a helper function to put every [Filled] letter 
+    from the board back to the current player's hand. *)
+let rec board_to_hand state =
+  let rec letters_from_coords acc st = function
+    | [] -> acc
+    | (i,j)::t -> letters_from_coords (st.board.(i).(j).letter::acc) st t in 
+  let retrieved_letters = letters_from_coords [] state state.coords in 
+  update_hand (fun hand -> hand @ retrieved_letters) state
+
+let put_everything_back st = 
+  let st' = board_to_hand st in 
+  reset_board st'; reset_coords st'
+
 let set_history pl wd s st = 
   if List.length st.history < 4 then {
     st with
@@ -425,13 +430,11 @@ let confirm_turn st =
     let st' = {
       st with 
       player_score = score + st.player_score;
-      player_turn = false
     } in set_board st'; st' |> reset_coords |> set_history "Player" word score
   ) else (
     let st' = {
       st with 
       bot_score = score + st.bot_score;
-      player_turn = true
     } in set_board st'; st' |> reset_coords |> set_history "Bot" word score
   )
 
@@ -440,19 +443,21 @@ let pass_turn st = {
   player_turn = not st.player_turn
 }
 
-let init_state () : state = {
-  board = init_board ();
-  player_hand = [];
-  bot_hand = [];
-  letter_bag = init_bag ();
-  coords = [];
-  available_letters = init_available_letters;
-  checked_words = Hashtbl.create 20;
-  history = [];
-  player_turn = Random.bool ();
-  player_score = 0;
-  bot_score = 0;
-}
+let init_state () : state = 
+  Random.self_init ();
+  {
+    board = init_board ();
+    player_hand = [];
+    bot_hand = [];
+    letter_bag = init_bag ();
+    coords = [];
+    available_letters = init_available_letters;
+    checked_words = Hashtbl.create 20;
+    history = [];
+    player_turn = Random.bool ();
+    player_score = 0;
+    bot_score = 0;
+  }
 
 type result = Valid of state | Invalid of exn 
 
