@@ -458,3 +458,5 @@ let init_state () : state =
     player_score = 0;
     bot_score = 0;
   }
+
+let game_start () = init_state () |> fill_hand |> pass_turn |> fill_hand

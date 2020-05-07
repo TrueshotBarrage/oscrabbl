@@ -3,7 +3,7 @@ open Scrabble
 open State
 
 (********************************************************************
-   Here are some helper functions for your testing of set-like lists. 
+   Here are some helper functions for testing set-like lists. 
  ********************************************************************)
 
 (** [cmp_set_like_lists lst1 lst2] compares two lists to see whether
@@ -20,12 +20,20 @@ let cmp_unordered_lists lst1 lst2 =
   &&
   uniq1 = uniq2
 
+(** [string_of_tuple f (x,y)] is the string of [x] and string of [y]. *)
+let string_of_tuple f (x,y) = "(" ^ f x ^ "," ^ f y ^ ")"
+
 (** [pp_string s] pretty-prints string [s]. *)
 let pp_string s = "\"" ^ s ^ "\""
 
 (** [pp_letter l] pretty-prints a letter of (char * int) [l]. *)
 let pp_letter l = 
   "('" ^ (l |> fst |> Char.escaped) ^ "'," ^ (l |> snd |> string_of_int) ^ ")"
+
+(** [pp_string_opt str_opt] pretty-prints a string option [str_opt]. *)
+let pp_string_opt = function
+  | None -> "No words found"
+  | Some str -> str
 
 (** [pp_list pp_elt lst] pretty-prints list [lst], using [pp_elt]
     to pretty-print each element of [lst]. *)
@@ -40,135 +48,130 @@ let pp_list pp_elt lst =
     in loop 0 "" lst
   in "[" ^ pp_elts lst ^ "]"
 
-(* These tests demonstrate how to use [cmp_set_like_lists] and 
-   [pp_list] to get helpful output from OUnit. *)
-let cmp_demo = 
-  [
-    "order is irrelevant" >:: (fun _ -> 
-        assert_equal ~cmp:cmp_unordered_lists ~printer:(pp_list pp_string)
-          ["foo"; "bar"] ["bar"; "foo"]);
-    (* Uncomment this test to see what happens when a test case fails.
-       "duplicates not allowed" >:: (fun _ -> 
-        assert_equal ~cmp:cmp_unordered_lists ~printer:(pp_list pp_string)
-          ["foo"; "foo"] ["foo"]);
-    *)
-  ]
 (********************************************************************
    End helper functions.
  ********************************************************************)
 
+(** [ScrabbleTestMaker] is a module to test the game elements. *)
 module ScrabbleTestMaker = struct
   (** [test_letter_val name l res] constructs a test for 
       [letter_val l] and matches its result with [res]. *)
-  let test_letter_val (name : string) (l : char) (res : int) : test = 
-    name >:: (fun _ -> 
-        assert_equal 
-          ~printer:string_of_int 
-          res (letter_val l))
+  let test_letter_val name l res = 
+    name >:: fun _ -> assert_equal ~printer:string_of_int res (letter_val l)
+
+  open Scrabble
+  open TreeSet
+
+  (** [test_dictionary_size name res] constructs a test for 
+        the size of [valid_words] and matches its result with [res]. *)
+  let test_dictionary_size name res = name >:: (
+      fun _ -> assert_equal ~printer:string_of_int 
+          res (valid_words |> size))
+
+  (** [test_valid_words_member name word res] constructs a test for [member] 
+      [word] of the Scrabble Dictionary and matches its result with [res]. *)
+  let test_valid_words_member name word res = name >:: (
+      fun _ -> assert_equal ~printer:string_of_bool res 
+          (valid_words |> member word))
+
+  (** [test_valid_words_choose name res] constructs a test for [choose] 
+      of the Scrabble Dictionary and matches its result with [res]. *)
+  let test_valid_words_choose name res = name >:: (
+      fun _ -> assert_equal ~printer:pp_string_opt res (valid_words |> choose))
 
   let tests = [
     test_letter_val "Test 'E' => 1" 'E' 1;
+    test_letter_val "Test 'X' => 8" 'X' 8;
     test_letter_val "Test ' ' => 0" ' ' 0;
+    test_dictionary_size "Test dict size" 279496;
+    test_valid_words_member "Test whether 'HELLO' in dict" "HELLO" true;
+    test_valid_words_member "Test whether 'POGCHAMP' in dict" "POGCHAMP" false;
+    test_valid_words_choose "Test to see if anything in dict" (Some "LAMINAL");
   ]
 end
 
 module StateTestMaker = struct
+  let st0 = init_state ()
   let st1 = 
     init_state () |> put_on_board None (7,7) 'A' |> put_on_board None (7,8) 'P'
     |> put_on_board None (7,9) 'P' |> put_on_board None (7,10) 'L' 
     |> put_on_board None (7,11) 'E'
+  let st1' = 
+    init_state () |> put_on_board None (7,6) 'A' |> put_on_board None (7,7) 'P'
+    |> put_on_board None (7,8) 'P' |> put_on_board None (7,9) 'L' 
+    |> put_on_board None (7,10) 'E'
   let st1_add_col = 
-    set_board st1; 
-    st1 |> put_on_board None (5,12) 'Y' |> put_on_board None (6,12) 'E'
+    let st1_aux = 
+      init_state () |> put_on_board None (7,7) 'A' 
+      |> put_on_board None (7,8) 'P' |> put_on_board None (7,9) 'P' 
+      |> put_on_board None (7,10) 'L' |> put_on_board None (7,11) 'E' in 
+    set_board st1_aux; 
+    st1_aux |> put_on_board None (5,12) 'Y' |> put_on_board None (6,12) 'E'
     |> put_on_board None (7,12) 'S'
   let st1_add_bad_col =
-    st1 |> put_on_board None (9,7) 'R' |> put_on_board None (10,7) 'M'
+    let st1_aux = 
+      init_state () |> put_on_board None (7,7) 'A' 
+      |> put_on_board None (7,8) 'P' |> put_on_board None (7,9) 'P' 
+      |> put_on_board None (7,10) 'L' |> put_on_board None (7,11) 'E' in 
+    set_board st1_aux; 
+    st1_aux |> put_on_board None (9,7) 'R' |> put_on_board None (10,7) 'M'
     |> put_on_board None (11,7) 'S'
 
   let st2 = 
     init_state () |> put_on_board None (5,7) 'Y' |> put_on_board None (6,7) 'E'
-    |> put_on_board None (7,7) 'E' |> put_on_board None (8,7) 'T'
+    |> put_on_board None (7,7) 'T'
   let st2_add_row = 
-    set_board st2;
-    st2 |> put_on_board None (8,8) 'R' |> put_on_board None (8,9) 'E'
-    |> put_on_board None (8,10) 'E'
+    init_state () |> put_on_board None (5,7) 'Y' |> put_on_board None (6,7) 'E' 
+    |> put_on_board None (7,7) 'T' |> confirm_turn
+    |> put_on_board None (7,8) 'R' |> put_on_board None (7,9) 'E' 
+    |> put_on_board None (7,10) 'E'
 
   (** [test_init_bag name res] constructs a test for 
-      [init_bag] and matches its result with [res]. *)
-  let test_init_bag (name : string) (res : (char * int) array) : test =
-    name >:: (fun _ -> 
-        assert_equal 
-          res (init_bag ()))
-
-  open Scrabble
-  open TreeSet
-  let scrabble_dictionary = valid_words
-
-  (** [test_dictionary_size name res] constructs a test for 
-        the size of [valid_words] and matches its result with [res]. *)
-  let test_dictionary_size (name : string) (res : int) : test =
-    name >:: (fun _ -> 
-        assert_equal 
-          ~printer:string_of_int
-          res (scrabble_dictionary |> size))
-
-  (** [test_valid_words_member name word res] constructs a test for [member] 
-      [word] of the Scrabble Dictionary and matches its result with [res]. *)
-  let test_valid_words_member
-      (name : string) 
-      (word : elt)
-      (res : bool) : test = 
-    name >:: (fun _ -> 
-        assert_equal 
-          ~printer:string_of_bool
-          res (scrabble_dictionary |> member word))
-
-  (** [pp_string_opt str] pretty-prints a string option [str]. *)
-  let pp_string_opt (str : string option) = 
-    match str with
-    | None -> "No words found"
-    | Some str -> str
-
-  (** [test_valid_words_choose name res] constructs a test for [choose] 
-      of the Scrabble Dictionary and matches its result with [res]. *)
-  let test_valid_words_choose
-      (name : string) 
-      (res : elt option) : test = 
-    name >:: (fun _ -> 
-        assert_equal 
-          ~printer:pp_string_opt
-          res (scrabble_dictionary |> choose))
+      [init_bag ()] and matches its result with [res]. *)
+  let test_init_bag name res = name >:: fun _ -> assert_equal res (init_bag ())
 
   (** [test_fill_both_hands name hand] constructs a test for [fill_hand 
       init_state ()] for both players and matches whether it is fully filled. *)
-  let test_fill_both_hands
-      (name : string) 
-      (hand : int) : test = 
-    name >:: (fun _ -> 
-        assert_equal 
-          ~printer:string_of_int
-          7 (List.length (
-              init_state () |> fill_hand |> pass_turn |> fill_hand
-            ).player_hand))
+  let test_fill_both_hands name hand = 
+    let gs = game_start () in name >:: (
+        fun _ -> assert_equal ~printer:(string_of_tuple string_of_int) (7,7)
+            (List.length gs.player_hand, List.length gs.bot_hand)
+      )
 
   (** [test_is_row name coords board res] constructs a test for [is_row coords 
       board] and matches its result with [res]. *)
-  let test_is_row
-      (name : string) 
-      (coords : (int * int) list)
-      (board : board) 
-      (res : bool) : test = 
-    name >:: (fun _ -> 
-        assert_equal 
-          ~printer:string_of_bool
-          res (is_row coords board))
+  let test_is_row name coords board res = name >:: (
+      fun _ -> assert_equal ~printer:string_of_bool res (is_row coords board)
+    )
 
-  let test_is_row_exn
-      (name : string) 
-      (coords : (int * int) list)
-      (board : board) : test = 
-    name >:: (fun _ -> 
-        assert_raises (InvalidTilePlacement) (fun () -> is_row coords board))
+  (** [test_is_row_exn coords board] constructs a bad test for [is_row coords 
+      board] and checks whether it returns an [InvalidTilePlacement] exn. *)
+  let test_is_row_exn name coords board = name >:: (
+      fun _ -> assert_raises InvalidTilePlacement (
+          fun () -> is_row coords board
+        )
+    )
+
+  (** [test_score_move name st res] constructs a test for [score_move st] and 
+      matches its score result with [res]. *)
+  let test_score_move name st res = name >:: (
+      fun _ -> assert_equal ~printer:string_of_int res (score_move st |> fst)
+    )
+
+  (** [test_reset_coords name st] constructs a test for [reset_coords st] 
+      and matches its result with [[]]. *)
+  let test_reset_coords name st = name >:: (
+      fun _ -> assert_equal 
+          ~printer:(string_of_int |> string_of_tuple |> pp_list) 
+          [] ((reset_coords st).coords)
+    )
+
+  (** [test_pass_turn name st] constructs a test for [pass_turn st] and matches 
+      checks whether the turn was changed. *)
+  let test_pass_turn name st = name >:: (
+      fun _ -> assert_equal ~printer:string_of_bool st.player_turn
+          (not (pass_turn st).player_turn)
+    )
 
   let tests = [
     test_init_bag "Test initialization of letter bag" 
@@ -177,19 +180,23 @@ module StateTestMaker = struct
           ('I',9); ('J',1); ('K',1); ('L',4); ('M',2); ('N',6); ('O',8); ('P',2); 
           ('Q',1); ('R',6); ('S',4); ('T',6); ('U',4); ('V',2); ('W',2); ('X',1); 
           ('Y',2); ('Z',1); (' ',2)]);
-    test_dictionary_size "Test dict size" 279496;
-    test_valid_words_member "Test whether 'HELLO' in dict" 
-      "HELLO" true;
-    test_valid_words_member "Test whether 'POGCHAMP' in dict" 
-      "POGCHAMP" false;
-    test_valid_words_choose "Test to see if anything in dict" (Some "LAMINAL");
     test_fill_both_hands "Test random player hand" 7;
     test_is_row "Test a valid column placement" [(5,12); (6,12); (7,12)] 
       st1_add_col.board false;
-    test_is_row "Test a valid row placement" [(8,8); (8,9); (8,10)] 
+    test_is_row "Test a valid row placement" [(7,8); (7,9); (7,10)] 
       st2_add_row.board true;
     test_is_row_exn "Test an invalid column placement" [(9,7); (10,7); (11,7)] 
       st1_add_bad_col.board;
+    test_score_move "Test scoring a word APPLE" st1' 9;
+    test_score_move "Test scoring a word APPLE with doubled E" st1 10;
+    test_score_move "Test scoring a word YET" st2 6;
+    test_score_move "Test scoring a word TREE by only placing REE"
+      st2_add_row 4;
+    test_reset_coords "Test resetting coordinates of no tiles" st0;
+    test_reset_coords "Test resetting coordinates of placed tiles" st1_add_col;
+    test_reset_coords "Test resetting coordinates of other tiles" st2_add_row;
+    test_pass_turn "Test random turn change" st0;
+    test_pass_turn "Test random turn change again" (pass_turn st0);
   ]
 end
 

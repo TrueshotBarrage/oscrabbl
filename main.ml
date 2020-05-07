@@ -181,7 +181,7 @@ let rec continue st =
 
 let main () =
   ANSITerminal.resize 125 40;
-  let st = init_state () |> fill_hand |> pass_turn |> fill_hand in
+  let st = game_start () in
   let _ = Sys.command "clear" in 
   print_help st;
   let _ = Sys.command "clear" in 

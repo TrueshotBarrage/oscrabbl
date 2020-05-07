@@ -50,8 +50,9 @@ val fill_hand : state -> state
     [c] from the current player's hand in [st]. *)
 val use_letter : char -> state -> state
 
-(** [put_on_bard (x,y) c st] sets the board of [st] with position [(x,y)] with 
-    the letter corresponding to [c]. *)
+(** [put_on_board wc_opt (x,y) c st] sets the board of [st] with position 
+    [(x,y)] with the letter corresponding to [c], possibly with the wildcard 
+    character "*" to be used for the chosen [c]. *)
 val put_on_board : string option -> int * int -> char -> state -> state
 
 (** [is_row lst b] returns whether [lst] contains coordinates that can be placed
@@ -95,3 +96,7 @@ val pass_turn : state -> state
 (** [init_state ()] is the initial state of every starting board.
     No letters have been distributed to players at this stage. *)
 val init_state : unit -> state
+
+(** [game_start ()] is the initial start state of the game, where players' 
+    hands have been dealt. *)
+val game_start : unit -> state
