@@ -74,17 +74,16 @@ let letter_qty  =
 let letter_val (l : char) : int = 
   List.find (fun pair -> fst pair = l) bucket |> snd
 
-open Dictionary
 open DictionarySet
 
 (** [StringKey] provides the necessary definitions to use strings
     as keys in dictionaries. *)
-module StringKey : KeySig with type t = string =
+module StringKey : ElementSig with type t = string =
 struct
   type t = string
   let compare s1 s2 =
     match Stdlib.compare s1 s2 with
-    | x when x < 0 -> LT
+    | x when x < 0 -> Dictionary.LT
     | x when x > 0 -> GT
     | _ -> EQ
   let format fmt s =

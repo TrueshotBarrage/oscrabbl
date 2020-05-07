@@ -295,12 +295,12 @@ let check_word tlst st =
     placement on [b], then returns the word as a [tile list]. *)
 let column_word b (x,y) =
   let rec column_up x y b acc = 
-    if b.(x).(y).status = Empty then acc 
-    else if x = 0 then b.(x).(y)::acc
+    if x < 0 || b.(x).(y).status = Empty then acc 
+    (* else if x = 0 then b.(x).(y)::acc *)
     else column_up (x-1) y b (b.(x).(y)::acc) in
   let rec column_down x y b acc = 
     if x > 14 || b.(x).(y).status = Empty then acc 
-    else if x = 14 then b.(x).(y)::acc
+    (* else if x = 14 then b.(x).(y)::acc *)
     else column_down (x+1) y b (acc @ [b.(x).(y)]) in 
   let wlst = column_up x y b [] @ column_down (x+1) y b [] in 
   if List.length wlst <= 1 then [] else wlst
@@ -309,12 +309,12 @@ let column_word b (x,y) =
     placement on [b], then returns the word as a [tile list]. *)
 let row_word b (x,y) = 
   let rec row_left x y b acc = 
-    if b.(x).(y).status = Empty then acc 
-    else if y = 0 then b.(x).(y)::acc 
+    if y < 0 || b.(x).(y).status = Empty then acc 
+    (* else if y = 0 then b.(x).(y)::acc  *)
     else row_left x (y-1) b (b.(x).(y)::acc) in 
   let rec row_right x y b acc = 
     if y > 14 || b.(x).(y).status = Empty then acc 
-    else if y = 14 then b.(x).(y)::acc 
+    (* else if y = 14 then b.(x).(y)::acc  *)
     else row_right x (y+1) b (acc @ [b.(x).(y)]) in 
   let wlst = row_left x y b [] @ row_right x (y+1) b [] in 
   if List.length wlst <= 1 then [] else wlst
@@ -458,7 +458,3 @@ let init_state () : state =
     player_score = 0;
     bot_score = 0;
   }
-
-type result = Valid of state | Invalid of exn 
-
-let make_move (x,y) c st = Valid st

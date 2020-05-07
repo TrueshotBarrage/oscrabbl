@@ -3,6 +3,8 @@ open Printer
 open Scrabble
 open State
 
+let pass_counter = ref 0
+
 (** [put wc_opt ch (i,j) st] updates [st] with the "put" command to put [ch] 
     at [(i,j)], possibly with the wildcard "*" tile. *)
 let put wc_opt ch (i,j) st = 
@@ -32,10 +34,12 @@ let exchange ch_list st =
         | st' -> remove_ls_from_hand t st'
       end in 
   let st' = remove_ls_from_hand ch_list st in 
-  if st = st' then st else
+  if st = st' then st else (
+    pass_counter := 0;
     List.fold_left (
       fun state ch -> update_available_letters false ch state
     ) st' ch_list |> fill_hand |> pass_turn
+  )
 
 (** [explode str] converts [str] to a [char list]. *)
 let explode str =
@@ -104,6 +108,7 @@ let print_help st =
   | _ -> ()
 
 let update_state cmd st : state = 
+  if true then () else ();
   match parse cmd with
   | exception Empty -> pp_r "You didn't type anything."; st 
   | exception Malformed -> 
@@ -121,7 +126,7 @@ let update_state cmd st : state =
       | exception InvalidTilePlacement -> pp_r "Invalid tile placement!"; st
       | exception SingleLetter -> 
         pp_r "You need to place a valid word with at least two characters!"; st
-      | st' -> st' |> fill_hand |> pass_turn
+      | st' -> pass_counter := 0; st' |> fill_hand |> pass_turn
     end
   | Clear -> put_everything_back st
   | Exchange lst -> 
@@ -134,7 +139,8 @@ let update_state cmd st : state =
       in exchange ch_list st 
     else (pp_r "Exchange should only take single letters!"; st)
   | Help -> print_help st; st
-  | Pass -> st |> put_everything_back |> pass_turn
+  | Pass -> pass_counter := !pass_counter + 1;
+    st |> put_everything_back |> pass_turn
   | Quit -> pp_y "Thanks for playing!\n"; exit 0 
 
 let rec continue st = 
@@ -144,11 +150,33 @@ let rec continue st =
       let st' = update_state cmd st in 
       let _ = Sys.command "clear" in 
       print_endline " ";
-      print_board st';
-      print_turn_prompt st';
-      print_string "> ";
-      flush stdout;
-      continue st'
+      if st.player_hand = [] && st.bot_hand = [] || !pass_counter = 6 
+      then 
+        if st'.player_score = st'.bot_score 
+        then (pp_w "It's a tie. No one wins this round!"; flush stdout)
+        else (
+          let winner, score = 
+            if st'.player_score > st'.bot_score 
+            then "Player", string_of_int st'.player_score 
+            else "Bot", string_of_int st'.bot_score in
+          pp_b winner; pp_rainbow " wins the game with ";
+          pp_g score; pp_rainbow " points! Congratulations!"; print_endline ""
+        )
+      else (
+        if !pass_counter = 4 
+        then pp_g 
+            "Both players have passed twice in a row. If both players pass agai\
+             n without making a meaningful move, the game will end!\n"
+        else if !pass_counter = 5 
+        then pp_g
+            "Both players have passed twice in a row. If you pass now, the gam\
+             e will end!\n";
+        print_board st';
+        print_turn_prompt st';
+        print_string "> ";
+        flush stdout;
+        continue st'
+      )
     end
 
 let main () =
@@ -156,6 +184,7 @@ let main () =
   let st = init_state () |> fill_hand |> pass_turn |> fill_hand in
   let _ = Sys.command "clear" in 
   print_help st;
+  let _ = Sys.command "clear" in 
   print_string "Welcome to "; pp_rainbow "OScrabbl"; print_string "! Type "; 
   pp_y "\"help\""; print_endline " if you ever need a refresher.";
   print_board st;

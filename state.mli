@@ -95,11 +95,3 @@ val pass_turn : state -> state
 (** [init_state ()] is the initial state of every starting board.
     No letters have been distributed to players at this stage. *)
 val init_state : unit -> state
-
-(** [result] is either a [Valid] [state], or raises an [exn] if [Invalid]. *)
-type result = Valid of state | Invalid of exn
-
-(** [make_move (x,y) c st] attempts to make a placement on the board, checking 
-    all the necessary constraints (bag, hand, board, etc.) to see if the move 
-    is [Valid] or [Invalid]. *)
-val make_move : int * int -> char -> state -> result
