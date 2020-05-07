@@ -9,7 +9,8 @@ let put wc_opt ch (i,j) st =
   let ch' = if wc_opt = None then ch else ' ' in 
   match use_letter ch' st with 
   | exception Not_found -> pp_r "You don't have "; 
-    ch' |> Char.escaped |> pp_r; pp_r " in your hand."; st
+    if ch' = ' ' then pp_y "*" else ch' |> Char.escaped |> pp_y; 
+    pp_r " in your hand."; st
   | st' -> begin
       match put_on_board wc_opt (i,j) ch st' with 
       | exception InvalidTilePlacement -> 
@@ -61,10 +62,10 @@ let classify_put_cmd (wc_opt : string option) l i' j' st =
 let print_help st = 
   let _ = Sys.command "clear" in 
   print_endline "\n\n\n";
-  pp_y 
-    "Welcome to OScrabbl! OScrabbl is a REPL-style Scrabble game designed for t\
-     he command line interface.\nThe rules are almost identical to real-life Sc\
-     rabble.\n\n\n";
+  pp_w "Welcome to "; pp_rainbow "OScrabbl"; 
+  pp_w 
+    "! OScrabbl is a REPL-style Scrabble game designed for the command line int\
+     erface.\nThe rules are almost identical to real-life Scrabble.\n\n\n";
   pp_g "List of supported commands:\n";
   pp_y "\"Put "; pp_m "<letter>"; pp_y " at "; pp_m "<row> <col>"; pp_y "\" ";
   pp_b "attempts to place your tile of "; pp_m "<letter>"; 
@@ -150,45 +151,13 @@ let rec continue st =
       continue st'
     end
 
-(* * [test0 st] is a new state with a test set of actions applied to [st].
-   let test0 st = 
-   st |> put_on_board (7,7) 'H' |> put_on_board (7,8) 'E' 
-   |> put_on_board (7,9) 'Y' |> confirm_turn
-
-   (** [test1 st] is a new state with a test set of actions applied to [st]. *)
-   let test1 st = 
-   st |> put_on_board (8,7) 'E' |> put_on_board (9,7) 'L'
-   |> put_on_board (10,7) 'L' |> put_on_board (11,7) 'O' |> confirm_turn
-
-   (** [test2 st] is a new state with a test set of actions applied to [st]. *)
-   let test2 st = 
-   st |> put_on_board (6,8) 'Y' |> put_on_board (8,8) 'S' |> confirm_turn
-
-   (** [test3 st] is a new state with a test set of actions applied to [st]. *)
-   let test3 st = 
-   st |> put_on_board (8,6) 'Y' |> put_on_board (9,6) 'E' 
-   |> put_on_board (10,6) 'A' |> put_on_board (11,6) 'H' |> confirm_turn
-
-   (** [test4 st] is a new state with a test set of actions applied to [st]. *)
-   let test4 st = 
-   st |> put_on_board (11,8) 'W' |> put_on_board (11,9) 'D' 
-   |> put_on_board (11,10) 'Y' |> confirm_turn
-
-   (** [test5 st] is a new state with a test set of actions applied to [st]. *)
-   let test5 st = st |> fill_hand |> pass_turn |> fill_hand
-
-   (** [test6 st] is a new state with a test set of actions applied to [st]. *)
-   let test6 st = st |> put_on_board (8,7) 'I' |> confirm_turn *)
-
 let main () =
   ANSITerminal.resize 125 40;
   let st = init_state () |> fill_hand |> pass_turn |> fill_hand in
-  (*  let st3 = test2 st2 in 
-      let st4 = test3 st3 in 
-      let st5 = test4 st4 in 
-      let st = test5 st5 in  *)
   let _ = Sys.command "clear" in 
-  print_endline "Welcome to OScrabbl! Currently in development :)";
+  print_help st;
+  print_string "Welcome to "; pp_rainbow "OScrabbl"; print_string "! Type "; 
+  pp_y "\"help\""; print_endline " if you ever need a refresher.";
   print_board st;
   print_turn_prompt st;
   print_string "> ";

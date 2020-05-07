@@ -101,11 +101,11 @@ let read_line i = try Some (input_line i) with End_of_file -> None
 
 let lines_from_files filename set = 
   let rec lines_from_files_aux i s = 
-    match (read_line i) with 
+    match read_line i with 
     | None -> s
     | Some str -> 
       let str = String.trim str in
-      lines_from_files_aux i (insert str s)
+      s |> insert str |> lines_from_files_aux i
   in lines_from_files_aux (open_in filename) set
 
 let valid_words = lines_from_files "valid_words.txt" empty

@@ -110,10 +110,10 @@ let print_tile_top t =
         pp_y "|"
     end
   | Filled -> 
-    (t.letter |> fst |> Char.escaped) ^ "  " |> pp_m;
+    (t.letter |> fst |> Char.escaped) ^ "  " |> pp_b;
     pp_y "|"
   | Set -> 
-    (t.letter |> fst |> Char.escaped) ^ "  " |> pp_w;
+    (t.letter |> fst |> Char.escaped) ^ "  " |> pp_m;
     pp_y "|"
 
 (** [print_tile_top t] pretty-prints [t]'s lower half, ASCII style. *)
@@ -123,8 +123,8 @@ let print_tile_bottom t =
   | Filled -> begin
       let value = t.letter |> snd in 
       let print_value () = 
-        if value > 9 then pp_m (string_of_int value) 
-        else (pp_y "_"; pp_m (string_of_int value)) in 
+        if value > 9 then pp_b (string_of_int value) 
+        else (pp_y "_"; pp_b (string_of_int value)) in 
       pp_y "_";
       print_value (); 
       pp_y "|"
@@ -132,8 +132,8 @@ let print_tile_bottom t =
   | Set -> begin
       let value = t.letter |> snd in 
       let print_value () = 
-        if value > 9 then pp_w (string_of_int value) 
-        else (pp_y "_"; pp_w (string_of_int value)) in 
+        if value > 9 then pp_m (string_of_int value) 
+        else (pp_y "_"; pp_m (string_of_int value)) in 
       pp_y "_"; 
       print_value ();
       pp_y "|"
