@@ -74,24 +74,24 @@ end
 
 module StateTestMaker = struct
   let st1 = 
-    init_state () |> put_on_board (7,7) 'A' |> put_on_board (7,8) 'P'
-    |> put_on_board (7,9) 'P' |> put_on_board (7,10) 'L' 
-    |> put_on_board (7,11) 'E'
+    init_state () |> put_on_board None (7,7) 'A' |> put_on_board None (7,8) 'P'
+    |> put_on_board None (7,9) 'P' |> put_on_board None (7,10) 'L' 
+    |> put_on_board None (7,11) 'E'
   let st1_add_col = 
     set_board st1; 
-    st1 |> put_on_board (5,12) 'Y' |> put_on_board (6,12) 'E'
-    |> put_on_board (7,12) 'S'
+    st1 |> put_on_board None (5,12) 'Y' |> put_on_board None (6,12) 'E'
+    |> put_on_board None (7,12) 'S'
   let st1_add_bad_col =
-    st1 |> put_on_board (9,7) 'R' |> put_on_board (10,7) 'M'
-    |> put_on_board (11,7) 'S'
+    st1 |> put_on_board None (9,7) 'R' |> put_on_board None (10,7) 'M'
+    |> put_on_board None (11,7) 'S'
 
   let st2 = 
-    init_state () |> put_on_board (5,7) 'Y' |> put_on_board (6,7) 'E'
-    |> put_on_board (7,7) 'E' |> put_on_board (8,7) 'T'
+    init_state () |> put_on_board None (5,7) 'Y' |> put_on_board None (6,7) 'E'
+    |> put_on_board None (7,7) 'E' |> put_on_board None (8,7) 'T'
   let st2_add_row = 
     set_board st2;
-    st2 |> put_on_board (8,8) 'R' |> put_on_board (8,9) 'E'
-    |> put_on_board (8,10) 'E'
+    st2 |> put_on_board None (8,8) 'R' |> put_on_board None (8,9) 'E'
+    |> put_on_board None (8,10) 'E'
 
   (** [test_init_bag name res] constructs a test for 
       [init_bag] and matches its result with [res]. *)

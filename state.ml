@@ -2,6 +2,7 @@ open Scrabble
 
 exception InvalidTilePlacement
 exception InvalidWords
+exception SingleLetter
 
 (** [repeat f n st] applies [f] to [st] [n] times. *)
 let rec repeat f n st = 
@@ -144,15 +145,6 @@ let take_from_bag char st : bool =
   Array.set st.letter_bag idx letter_entry'; 
   let still_in_bag = snd letter_entry' <> 0 in still_in_bag (* for clarity *)
 
-(** [update_available_letters removing c st] either: 
-    1) takes the letter corresponding to [c] from the letter bag and 
-    removes [c] from the list of available letters if the last letter 
-    of [c] was taken from the bag, if [removing].
-    Requires: The letter of [c] is in the list of available letters. 
-    or: 
-    2) adds the letter corresponding to [c] to the letter bag and adds 
-    [c] to the list of available letters if [c] does not exist in it,
-    if not [removing]. *)
 let update_available_letters removing char st : state =
   if removing then 
     let still_in_bag = take_from_bag char st in 
@@ -221,15 +213,17 @@ let rec fill_hand st : state =
 let use_letter char st : state = 
   update_hand (remove_letter_from_hand char) st
 
-let put_on_board (x,y) c st = 
+let put_on_board wc_option (x,y) c st = 
   let letter = letter_of_char c in 
   let tile = st.board.(x).(y) in 
   if tile.status = Set || tile.status = Filled then raise InvalidTilePlacement
   else
+    let letter' = 
+      if wc_option = None then letter else (fst letter, 0) in 
     let tile' = {
       tile with 
       status = Filled;
-      letter = letter
+      letter = letter'
     } in 
     st.board.(x).(y) <- tile';
     {
@@ -337,9 +331,11 @@ let rec score_of_word mult acc tlst =
       | Word n -> score_of_word (mult * n) (acc + snd h.letter) t
     end
 
-(** [choose lst] takes the first non-empty list element from [lst] *)
+(** [choose lst] takes the first non-empty list element from [lst]. 
+    Raises: [SingleLetter] if only a single letter was placed at the very 
+    first turn of the game. *)
 let rec choose = function 
-  | [] -> failwith "No valid elements in list"
+  | [] -> raise SingleLetter
   | h::t -> if h = [] then choose t else h
 
 let score_move st = 
@@ -400,7 +396,10 @@ let reset_board st =
 let rec board_to_hand state =
   let rec letters_from_coords acc st = function
     | [] -> acc
-    | (i,j)::t -> letters_from_coords (st.board.(i).(j).letter::acc) st t in 
+    | (i,j)::t -> 
+      let letter = st.board.(i).(j).letter in
+      let new_letter = if snd letter = 0 then (' ', 0) else letter in 
+      letters_from_coords (new_letter::acc) st t in 
   let retrieved_letters = letters_from_coords [] state state.coords in 
   update_hand (fun hand -> hand @ retrieved_letters) state
 
