@@ -11,6 +11,12 @@ default: play
 build:
 	$(OCAMLBUILD) $(OBJECTS)
 
+release: build
+	mkdir -p "release"
+	cp _build/main.byte release/main.byte
+	cp valid_words.txt release/valid_words.txt
+	cp OScrabbl release/OScrabbl
+
 test:
 	$(OCAMLBUILD) -tag 'debug' $(TEST) && ./$(TEST)
 
