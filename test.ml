@@ -150,9 +150,15 @@ module StateTestMaker = struct
     game_start () |> set_history "" "" 0 |> set_history "" "" 0
     |> set_history "" "" 0 |> set_history "" "" 0 |> set_history "" "" 0
 
-  (** [st5] is a state to test successfully throwing a [SingleLetter] exception 
-      for placing a single tile at the beginning of the game. *)
+  (** [st5] is a state to test successfully throwing exceptions for an invalid 
+      placement of tiles, not placing a valid word, or placing only a single 
+      tile at the beginning of the game. *)
   let st5 = game_start () |> put_on_board None (7,7) 'H'
+  let st5_not_a_word = 
+    game_start () |> put_on_board None (7,7) 'Y' |> put_on_board None (7,8) 'E'
+    |> put_on_board None (7,9) 'E' |> put_on_board None (7,10) 'T'
+  let st5_not_on_origin = 
+    game_start () |> put_on_board None (7,8) 'H' |> put_on_board None (8,8) 'I'
 
   (** [st6] is a state to test whether the bag and the list of available 
       letters are updated correctly. *)
@@ -160,6 +166,32 @@ module StateTestMaker = struct
   let st6_no_b = 
     init_state () |> update_available_letters true 'B'
     |> update_available_letters true 'B'
+
+  (** [st7] is a state to test hand manipulation functionality. *)
+  let st7 = 
+    let init = init_state () in {
+      init with 
+      player_hand = ('A',1)::[];
+      bot_hand = ('A',1)::[];
+    }
+  let st7_wildcard = 
+    let init = init_state () in {
+      init with 
+      player_hand = (' ',0)::('E',1)::[];
+      bot_hand = (' ',0)::('E',1)::[]
+    }
+
+  (** [test_index name c i] constructs a test for [index c] and compares the 
+      result with [i]. *)
+  let test_index name c i = name >:: (
+      fun _ -> assert_equal ~printer:string_of_int i (index c)
+    )
+
+  (** [test_index' name i c] constructs a test for [index' i] and compares it
+      with [c]. *)
+  let test_index' name i c = name >:: (
+      fun _ -> assert_equal ~printer:Char.escaped c (index' i)
+    )
 
   (** [test_init_bag name res] constructs a test for 
       [init_bag ()] and matches its result with [res]. *)
@@ -181,9 +213,9 @@ module StateTestMaker = struct
     | [] -> st
     | h::t -> update_available_letters true h st |> exhaust_bag
 
-  (** [test_remove_available_letters name c st] constructs a test to see if  
+  (** [test_remove_available_letters name st] constructs a test to see if  
       all elements can be removed correctly, and also that the bag is empty. *)
-  let test_remove_available_letters name c st = 
+  let test_remove_available_letters name st = 
     let st' = exhaust_bag st in name >:: (
         fun _ -> assert_equal true (
             st'.available_letters = [] 
@@ -197,6 +229,24 @@ module StateTestMaker = struct
         fun _ -> assert_equal ~printer:(string_of_tuple string_of_int) (7,7)
             (List.length gs.player_hand, List.length gs.bot_hand)
       )
+
+  (** [test_use_letter name c st hand] constructs a test for [use_letter c st] 
+      from the player's hand and checks whether the player's hand correctly 
+      removes the letter from the hand by comparing it with [hand]. *)
+  let test_use_letter name c st hand = 
+    let st' = st |> use_letter c |> pass_turn |> use_letter c in 
+    name >:: (
+      fun _ -> assert_equal ~printer:(pp_list pp_letter) 
+          hand st'.player_hand
+    )
+
+  (** [test_adjacent_squares name tup res] constructs a test for 
+      [adjacent_squares tup] and compares its result with [res]. *)
+  let test_adjacent_squares name tup res = name >:: (
+      fun _ -> 
+        assert_equal ~printer:(string_of_int |> string_of_tuple |> pp_list) 
+          ~cmp:cmp_unordered_lists res (adjacent_squares tup)
+    )
 
   (** [test_is_row name coords board res] constructs a test for [is_row coords 
       board] and matches its result with [res]. *)
@@ -269,8 +319,16 @@ module StateTestMaker = struct
     )
 
   (** [test_confirm_turn_exn2 st] constructs a bad test for [confirm_turn st] 
-      and checks whether it returns an [InvalidTilePlacement] exn. *)
+      and checks whether it returns an [InvalidWords] exn. *)
   let test_confirm_turn_exn2 name st = name >:: (
+      fun _ -> assert_raises InvalidWords (
+          fun () -> confirm_turn st
+        )
+    )
+
+  (** [test_confirm_turn_exn3 st] constructs a bad test for [confirm_turn st] 
+      and checks whether it returns an [SingleLetter] exn. *)
+  let test_confirm_turn_exn3 name st = name >:: (
       fun _ -> assert_raises SingleLetter (
           fun () -> confirm_turn st
         )
@@ -297,6 +355,11 @@ module StateTestMaker = struct
 
   (** [tests] represent the test suite to be run for the functor. *)
   let tests = [
+    test_index "Test regular letter 'A' => 0" 'A' 0;
+    test_index "Test wildcard character ' ' => -33" ' ' (-33);
+    test_index' "Test a regular number 0 => 'A'" 0 'A';
+    test_index' "Test a number corresponding to the wildcard -33 => ' '" 
+      (-33) ' ';
     test_init_bag "Test initialization of letter bag" (Array.of_list [
         ('A',9); ('B',2); ('C',2); ('D',4); ('E',12); ('F',2); ('G',3); ('H',2); 
         ('I',9); ('J',1); ('K',1); ('L',4); ('M',2); ('N',6); ('O',8); ('P',2); 
@@ -311,7 +374,22 @@ module StateTestMaker = struct
       st6 st0;
     test_add_available_letters 
       "Test adding a letter to a state that has no effect" 'B' st6_no_b st0;
+    test_remove_available_letters "Test whether removing everything works" 
+      (init_state ());
     test_fill_both_hands "Test random player hand" 7;
+    test_use_letter "Test using a letter from a hand of a single letter" 'A' 
+      st7 [];
+    test_use_letter "Test using a letter from a hand of a wildcard" ' ' 
+      st7_wildcard [('E',1)];
+    test_adjacent_squares 
+      "Test getting the list of coordinates of the tiles adjacent to (3,5)"
+      (3,5) [(3,4); (3,6); (4,5); (2,5)];
+    test_adjacent_squares 
+      "Test getting the list of coordinates of a tile near the wall: (14,6)"
+      (14,6) [(14,5); (14,7); (13,6)];
+    test_adjacent_squares 
+      "Test getting the list of coordinates of a tile in a corner: (0,0)"
+      (0,0) [(0,1); (1,0)];
     test_is_row "Test a valid column placement" [(5,12); (6,12); (7,12)] 
       st1_add_col.board false;
     test_is_row "Test a valid row placement" [(7,8); (7,9); (7,10)] 
@@ -345,7 +423,12 @@ module StateTestMaker = struct
     test_set_history "Test putting record in a full history" "Bot" "GOD" 
       5 st4_filled;
     test_confirm_turn_exn1 "Test a bad confirmation on empty board state" st0;
+    test_confirm_turn_exn1 
+      "Test a bad confirmation of not placing the first word at the origin" 
+      st5_not_on_origin;
     test_confirm_turn_exn2 
+      "Test a bad confirmation on a word not in the dictionary" st5_not_a_word;
+    test_confirm_turn_exn3 
       "Test a bad confirmation on board state with single letter" st5;
     test_pass_turn "Test random turn change" st0;
     test_pass_turn "Test random turn change again" (pass_turn st0);

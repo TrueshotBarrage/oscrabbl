@@ -55,6 +55,10 @@ val use_letter : char -> state -> state
     character "*" to be used for the chosen [c]. *)
 val put_on_board : string option -> int * int -> char -> state -> state
 
+(** [adjacent_squares (i,j)] is the list of coordinates adjacent to [(i,j)], 
+    satisfying constraints of the outer boundaries of the board. *)
+val adjacent_squares : int * int -> (int * int) list
+
 (** [is_row lst b] returns whether [lst] contains coordinates that can be placed
     all in a single row or column, and whether the placement is valid for [b].
     Raises: [InvalidTilePlacement] if [lst] contains coordinates of multiple

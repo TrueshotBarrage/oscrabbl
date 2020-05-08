@@ -1,1 +1,1 @@
-let hours_worked = [38;20]
+let hours_worked = [44;24]

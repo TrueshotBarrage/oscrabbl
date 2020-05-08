@@ -227,8 +227,6 @@ let put_on_board wc_option (x,y) c st =
 (** [is_set (x,y) b] is if the tile at [(x,y)] on [b] is [Set]. *)
 let is_set (x,y) b = b.(x).(y).status = Set
 
-(** [adjacent_squares (i,j)] is the list of coordinates adjacent to [(i,j)], 
-    satisfying constraints of the outer boundaries of the board. *)
 let adjacent_squares (i,j) = 
   let output = ref [] in 
   if i + 1 <= 14 then output := (i+1, j)::!output;
