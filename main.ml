@@ -20,6 +20,24 @@ let put wc_opt ch (i,j) st =
       | st'' -> st''
     end
 
+(** [confirm st] attempts to update [st] with the current configuration of 
+    the board, and catches any exceptions that may arise as a result of invalid 
+    board states. If successful, the current player's turn ends after the 
+    added words' scores are added. *)
+let confirm st = 
+  match confirm_turn st with 
+  | exception InvalidWords -> pp_r "Cannot make that move! ";
+    pp_w "At least one of the words formed by that move is invalid."; st
+  | exception InvalidTilePlacement -> pp_r "Invalid tile placement!"; st
+  | exception SingleLetter -> 
+    pp_r "You need to place a valid word with at least two characters!"; st
+  | st' -> pass_counter := 0; st' |> fill_hand |> pass_turn
+
+(** [explode str] converts [str] to a [char list]. *)
+let explode str =
+  let rec exp i acc = if i < 0 then acc else exp (i - 1) (str.[i]::acc) in
+  exp (String.length str - 1) []
+
 (** [exchange ch_list st] updates [st] with the "exchange" command to exchange 
     all the letters in [ch_list] from the bag in [st]. *)
 let exchange ch_list st = 
@@ -41,10 +59,16 @@ let exchange ch_list st =
     ) st' ch_list |> fill_hand |> pass_turn
   )
 
-(** [explode str] converts [str] to a [char list]. *)
-let explode str =
-  let rec exp i acc = if i < 0 then acc else exp (i - 1) (str.[i]::acc) in
-  exp (String.length str - 1) []
+(** [exchange_aux cmd_lst st] checks whether all the elements in [cmd_lst] are 
+    valid letters to exchange, i.e. they all have length 1, and that there is 
+    at most 7 letters being exchanged. *)
+let exchange_aux cmd_lst st = 
+  if List.for_all (fun str -> String.length str = 1) cmd_lst 
+  && List.length cmd_lst <= 7
+  then let ch_list = List.map (
+      fun str -> str |> String.uppercase_ascii |> explode |> List.hd
+    ) cmd_lst in exchange ch_list st 
+  else (pp_r "Exchange should only take single letters!"; st)
 
 (** [classify_put_cmd wc_opt l i' j' st] updates [st] with the "put" command 
     parameters [l], [i'], [j'], and possibly "*" for the wildcard character. *)
@@ -62,7 +86,9 @@ let classify_put_cmd (wc_opt : string option) l i' j' st =
   | _ -> pp_r {|Please enter a valid move. Example: "put A at 3 4"|}; st
 
 (** [print_help st] toggles the help manual for the game. Using this while 
-    the help manual is shown will close the manual. *)
+    the help manual is shown will close the manual.
+    The code is a bit long, so sorry about that. It's not really possible to
+    abstract this further without making our function unclear. *)
 let print_help st = 
   let _ = Sys.command "clear" in 
   print_endline "\n\n\n";
@@ -108,7 +134,6 @@ let print_help st =
   | _ -> ()
 
 let update_state cmd st : state = 
-  if true then () else ();
   match parse cmd with
   | exception Empty -> pp_r "You didn't type anything."; st 
   | exception Malformed -> 
@@ -119,29 +144,26 @@ let update_state cmd st : state =
   | Put _ -> 
     pp_r "The \"put\" command wasn't understood correctly. If you need help, t\
           ype \"help\" for a list of supported commands."; st
-  | Confirm -> begin
-      match confirm_turn st with 
-      | exception InvalidWords -> pp_r "Cannot make that move! ";
-        pp_w "At least one of the words formed by that move is invalid."; st
-      | exception InvalidTilePlacement -> pp_r "Invalid tile placement!"; st
-      | exception SingleLetter -> 
-        pp_r "You need to place a valid word with at least two characters!"; st
-      | st' -> pass_counter := 0; st' |> fill_hand |> pass_turn
-    end
+  | Confirm -> confirm st
   | Clear -> put_everything_back st
-  | Exchange lst -> 
-    if List.fold_left (fun b str -> b && String.length str = 1) true lst 
-    && List.length lst <= 7
-       (* Using [List.hd] is fine here; we checked every element has len 1 *)
-    then let ch_list = List.map (
-        fun str -> str |> String.uppercase_ascii |> explode |> List.hd
-      ) lst 
-      in exchange ch_list st 
-    else (pp_r "Exchange should only take single letters!"; st)
+  | Exchange lst -> exchange_aux lst st
   | Help -> print_help st; st
   | Pass -> pass_counter := !pass_counter + 1;
     st |> put_everything_back |> pass_turn
   | Quit -> pp_y "Thanks for playing!\n"; exit 0 
+
+(** [game_over st] pretty-prints who won the game. *)
+let game_over st = 
+  if st.player_score = st.bot_score 
+  then (pp_w "It's a tie. No one wins this round!"; flush stdout)
+  else (
+    let winner, score = 
+      if st.player_score > st.bot_score 
+      then "Player", string_of_int st.player_score 
+      else "Bot", string_of_int st.bot_score in
+    pp_b winner; pp_rainbow " wins the game with ";
+    pp_g score; pp_rainbow " points! Congratulations!"; print_endline ""
+  )
 
 let rec continue st = 
   match read_line () with
@@ -151,33 +173,17 @@ let rec continue st =
       let _ = Sys.command "clear" in 
       print_endline " ";
       if st.player_hand = [] && st.bot_hand = [] || !pass_counter = 6 
-      then 
-        if st'.player_score = st'.bot_score 
-        then (pp_w "It's a tie. No one wins this round!"; flush stdout)
-        else (
-          let winner, score = 
-            if st'.player_score > st'.bot_score 
-            then "Player", string_of_int st'.player_score 
-            else "Bot", string_of_int st'.bot_score in
-          pp_b winner; pp_rainbow " wins the game with ";
-          pp_g score; pp_rainbow " points! Congratulations!"; print_endline ""
-        )
+      then game_over st 
       else (
-        if !pass_counter = 4 
-        then pp_g 
+        if !pass_counter = 4 then pp_g 
             "Both players have passed twice in a row. If both players pass agai\
              n without making a meaningful move, the game will end!\n"
-        else if !pass_counter = 5 
-        then pp_g
+        else if !pass_counter = 5 then pp_g
             "Both players have passed twice in a row. If you pass now, the gam\
              e will end!\n";
-        print_board st';
-        print_turn_prompt st';
-        print_string "> ";
-        flush stdout;
+        print_board st'; print_turn_prompt st'; print_string "> "; flush stdout;
         continue st'
-      )
-    end
+      ) end
 
 let main () =
   ANSITerminal.resize 125 40;

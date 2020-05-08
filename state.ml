@@ -25,28 +25,20 @@ type state = {
 
 (** [set_double_letters b] sets the appropriate tiles of [b] to be
     double letter tiles. *)
-let set_double_letters (b : board) =
+let set_double_letters b =
   (* Grouped by tiles that correspond to each other, for readability *)
   b.(0).(3) <- double_letter; b.(0).(11) <- double_letter;
-
   b.(2).(6) <- double_letter; b.(2).(8) <- double_letter;
-
   b.(3).(0) <- double_letter; b.(3).(7) <- double_letter; 
   b.(3).(14) <- double_letter;
-
   b.(6).(2) <- double_letter; b.(6).(6) <- double_letter; 
   b.(6).(8) <- double_letter; b.(6).(12) <- double_letter;
-
   b.(7).(3) <- double_letter; b.(7).(11) <- double_letter; 
-
   b.(8).(2) <- double_letter; b.(8).(6) <- double_letter; 
   b.(8).(8) <- double_letter; b.(8).(12) <- double_letter;
-
   b.(11).(0) <- double_letter; b.(11).(7) <- double_letter; 
   b.(11).(14) <- double_letter;
-
   b.(12).(6) <- double_letter; b.(12).(8) <- double_letter;
-
   b.(14).(3) <- double_letter; b.(14).(11) <- double_letter
 
 (** [set_double_letters b] sets the appropriate tiles of [b] to be
@@ -97,8 +89,9 @@ let set_triple_letters b =
   b.(13).(5) <- triple_letter;
   b.(13).(9) <- triple_letter
 
-let set_origin b =
-  b.(7).(7) <- origin_letter
+(** [set_origin b] sets the origin tile at (7,7) as a special tile where 
+    every OScrabbl game must start. *)
+let set_origin b = b.(7).(7) <- origin_letter
 
 (** [set_board_modifiers b] sets the appropriate tiles of [b] to be 
     to be score multiplier tiles. *)
@@ -265,10 +258,8 @@ let is_row lst b =
     if List.mem (7,7) lst || is_connected lst b then true
     else raise InvalidTilePlacement
   | h::t -> 
-    let is_row_placement x xl = 
-      List.fold_left (fun bool elt -> bool && fst elt = x) true xl in 
-    let is_col_placement y yl = 
-      List.fold_left (fun bool elt -> bool && snd elt = y) true yl in 
+    let is_row_placement x xl = List.for_all (fun elt -> fst elt = x) xl in 
+    let is_col_placement y yl = List.for_all (fun elt -> snd elt = y) yl in 
     let is_r = is_row_placement (fst h) t in 
     if (is_r <> is_col_placement (snd h) t) && is_connected lst b then is_r 
     else if List.mem (7,7) lst then is_r 
@@ -280,9 +271,9 @@ let string_of_tile_list tlst =
     str ^ (tile.letter |> fst |> Char.escaped) in 
   List.fold_left string_of_tile "" tlst
 
-(** [check_word tlst st] is whether the English word formed by the letters of 
+(** [check_word st tlst] is whether the English word formed by the letters of 
     [tlst], in order of reverse-insertion (from left to right). *)
-let check_word tlst st = 
+let check_word st tlst = 
   if tlst = [] then true 
   else 
     let word = string_of_tile_list tlst in 
@@ -296,11 +287,9 @@ let check_word tlst st =
 let column_word b (x,y) =
   let rec column_up x y b acc = 
     if x < 0 || b.(x).(y).status = Empty then acc 
-    (* else if x = 0 then b.(x).(y)::acc *)
     else column_up (x-1) y b (b.(x).(y)::acc) in
   let rec column_down x y b acc = 
     if x > 14 || b.(x).(y).status = Empty then acc 
-    (* else if x = 14 then b.(x).(y)::acc *)
     else column_down (x+1) y b (acc @ [b.(x).(y)]) in 
   let wlst = column_up x y b [] @ column_down (x+1) y b [] in 
   if List.length wlst <= 1 then [] else wlst
@@ -310,11 +299,9 @@ let column_word b (x,y) =
 let row_word b (x,y) = 
   let rec row_left x y b acc = 
     if y < 0 || b.(x).(y).status = Empty then acc 
-    (* else if y = 0 then b.(x).(y)::acc  *)
     else row_left x (y-1) b (b.(x).(y)::acc) in 
   let rec row_right x y b acc = 
     if y > 14 || b.(x).(y).status = Empty then acc 
-    (* else if y = 14 then b.(x).(y)::acc  *)
     else row_right x (y+1) b (acc @ [b.(x).(y)]) in 
   let wlst = row_left x y b [] @ row_right x (y+1) b [] in 
   if List.length wlst <= 1 then [] else wlst
@@ -338,29 +325,18 @@ let rec choose = function
   | [] -> raise SingleLetter
   | h::t -> if h = [] then choose t else h
 
-let score_move st = 
-  let is_valid_wlst wlst = 
-    List.fold_left (fun acc tlst -> acc && check_word tlst st) true wlst in 
-  if is_row st.coords st.board then 
-    (* using List.hd is fine here; is_row throws an exception if empty *)
-    let word_list = 
+let score_move st =
+  let word_list = 
+    if is_row st.coords st.board then 
       row_word st.board (List.hd st.coords)::List.map (column_word st.board) 
-        st.coords in 
-    if is_valid_wlst word_list then 
-      (List.fold_left (
-          fun acc word -> acc + score_of_word 1 0 word
-        ) 0 word_list, string_of_tile_list (choose word_list)) 
-    else raise InvalidWords
-  else
-    (* using List.hd is fine here; is_row throws an exception if empty *)
-    let word_list = 
-      column_word st.board (List.hd st.coords)::List.map (row_word st.board) 
-        st.coords in 
-    if is_valid_wlst word_list then 
-      (List.fold_left (
-          fun acc word -> acc + score_of_word 1 0 word
-        ) 0 word_list, string_of_tile_list (choose word_list))
-    else raise InvalidWords
+        st.coords 
+    else column_word st.board (List.hd st.coords)::List.map (row_word st.board) 
+           st.coords in 
+  if List.for_all (check_word st) word_list then 
+    (List.fold_left (
+        fun acc word -> acc + score_of_word 1 0 word
+      ) 0 word_list, string_of_tile_list (choose word_list))
+  else raise InvalidWords
 
 let reset_coords st = {
   st with 
