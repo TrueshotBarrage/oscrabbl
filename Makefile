@@ -1,4 +1,4 @@
-MODULES=authors command dictionary dictionarySet main printer scrabble state treeDictionary 
+MODULES=authors oScrabbl state command printer main
 OBJECTS=$(MODULES:=.cmo)
 MLS=$(MODULES:=.ml)
 MLIS=$(MODULES:=.mli)
@@ -6,8 +6,7 @@ TEST=test.byte
 MAIN=main.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 
-default: build
-	utop
+default: play
 
 build:
 	$(OCAMLBUILD) $(OBJECTS)
@@ -23,24 +22,23 @@ check:
 	
 finalcheck: check
 	bash checkzip.sh
-	bash finalcheck.sh
 
 zip:
-	zip scrabble.zip *.ml* *.txt _tags .ocamlinit *.sh Makefile -x "_*.ml*"
+	zip OScrabbl.zip *.ml* *.txt *.md _tags .ocamlinit *.sh Makefile -x "_*.ml*"
 	
 docs: docs-public docs-private
 	
 docs-public: build
 	mkdir -p doc.public
 	ocamlfind ocamldoc -I _build -package ANSITerminal \
-		-html -stars -d doc.public $(MLIS)
+		-html -stars -hide-warnings -d doc.public $(MLIS)
 
 docs-private: build
 	mkdir -p doc.private
 	ocamlfind ocamldoc -I _build -package ANSITerminal \
-		-html -stars -d doc.private \
+		-html -stars -hide-warnings -d doc.private \
 		-inv-merge-ml-mli -m A $(MLIS) $(MLS)
 
 clean:
 	ocamlbuild -clean
-	rm -rf doc.public doc.private scrabble.zip
+	rm -rf doc.public doc.private OScrabbl.zip

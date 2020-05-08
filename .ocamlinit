@@ -2,9 +2,6 @@
 #require "ANSITerminal";;
 #directory "_build";;
 #load_rec "command.cmo";;
-#load_rec "dictionary.cmo";;
-#load_rec "dictionarySet.cmo";;
 #load_rec "printer.cmo";;
-#load_rec "scrabble.cmo";;
+#load_rec "oScrabbl.cmo";;
 #load_rec "state.cmo";;
-#load_rec "treeDictionary.cmo";;

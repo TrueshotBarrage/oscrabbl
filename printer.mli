@@ -1,6 +1,13 @@
+(** 
+   Helper functions used to pretty-print board elements and feedback messages 
+   quickly and beautifully.
+*)
 open State
-open Scrabble
+open OScrabbl
 open ANSITerminal
+
+(** [pp_color c str] pretty-prints a string [str] using color [c]. *)
+val pp_color : style -> string -> unit
 
 (** [pp_y str] is a shorthand for [pp_color ANSITerminal.yellow str]. *)
 val pp_y : string -> unit

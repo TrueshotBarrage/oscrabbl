@@ -1,7 +1,25 @@
-open Scrabble
+(** 
+   Representation of dynamic game state in OScrabbl.
 
+   This module represents the state of the game as it is being played,
+   integrating the data structures with functions that cause the state to 
+   change.
+*)
+open OScrabbl
+
+(** [InvalidTilePlacement] is raised when tiles placed on the board do not 
+    adhere to OScrabbl rules; namely, trying to set [Filled] tiles that are not 
+    uniformly in either rows or columns, trying to fill tiles into tiles 
+    that are already [Filled] or [Set] with other letters, or not starting 
+    the game on the [Origin] tile. *)
 exception InvalidTilePlacement
+
+(** [InvalidWords] is raised when a set of tiles in process to be [Set] onto 
+    the board do not all form valid words in the OScrabbl lexicon. *)
 exception InvalidWords
+
+(** [SingleLetter] is raised at the very start of the game if a player attempts 
+    to set a single tile as the first move on an empty board. *)
 exception SingleLetter
 
 (** [state] is a record that indicates the state of the game. *)

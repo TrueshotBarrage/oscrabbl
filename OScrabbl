@@ -1,0 +1,7 @@
+#!/bin/bash
+
+ocamlbuild -use-ocamlfind 
+ocamlbuild -use-ocamlfind main.byte && ./main.byte
+
+
+

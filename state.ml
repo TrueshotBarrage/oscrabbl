@@ -1,4 +1,4 @@
-open Scrabble
+open OScrabbl
 
 exception InvalidTilePlacement
 exception InvalidWords
@@ -276,7 +276,7 @@ let check_word st tlst =
   else 
     let word = string_of_tile_list tlst in 
     if Hashtbl.mem st.checked_words word then true 
-    else if valid_words |> TreeSet.member word 
+    else if valid_words |> Lexicon.mem word 
     then (Hashtbl.add st.checked_words word (); true)
     else false
 

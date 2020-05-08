@@ -1,5 +1,5 @@
 open OUnit2
-open Scrabble
+open OScrabbl
 open State
 
 (********************************************************************
@@ -48,41 +48,42 @@ let pp_list pp_elt lst =
    End helper functions.
  ********************************************************************)
 
-(** [ScrabbleTestMaker] is a module to test the game elements. *)
-module ScrabbleTestMaker = struct
+(** [OScrabblTestMaker] is a module to test the game elements. *)
+module OScrabblTestMaker = struct
   (** [test_letter_val name l res] constructs a test for 
       [letter_val l] and matches its result with [res]. *)
   let test_letter_val name l res = 
     name >:: fun _ -> assert_equal ~printer:string_of_int res (letter_val l)
 
-  open Scrabble
-  open TreeSet
-
-  (** [test_dictionary_size name res] constructs a test for 
+  (** [test_valid_words_size name res] constructs a test for 
         the size of [valid_words] and matches its result with [res]. *)
-  let test_dictionary_size name res = name >:: (
+  let test_valid_words_size name res = name >:: (
       fun _ -> assert_equal ~printer:string_of_int 
-          res (valid_words |> size))
+          res (valid_words |> Lexicon.cardinal)
+    )
 
   (** [test_valid_words_member name word res] constructs a test for [member] 
-      [word] of the Scrabble Dictionary and matches its result with [res]. *)
+      [word] of the OScrabbl lexicon and matches its result with [res]. *)
   let test_valid_words_member name word res = name >:: (
       fun _ -> assert_equal ~printer:string_of_bool res 
-          (valid_words |> member word))
+          (valid_words |> Lexicon.mem word)
+    )
 
   (** [test_valid_words_choose name res] constructs a test for [choose] 
-      of the Scrabble Dictionary and matches its result with [res]. *)
+      of the OScrabbl lexicon and matches its result with [res]. *)
   let test_valid_words_choose name res = name >:: (
-      fun _ -> assert_equal ~printer:pp_string_opt res (valid_words |> choose))
+      fun _ -> assert_equal ~printer:pp_string
+          res (valid_words |> Lexicon.choose)
+    )
 
   let tests = [
     test_letter_val "Test 'E' => 1" 'E' 1;
     test_letter_val "Test 'X' => 8" 'X' 8;
     test_letter_val "Test ' ' => 0" ' ' 0;
-    test_dictionary_size "Test dict size" 279496;
+    test_valid_words_size "Test dict size" 279496;
     test_valid_words_member "Test whether 'HELLO' in dict" "HELLO" true;
     test_valid_words_member "Test whether 'POGCHAMP' in dict" "POGCHAMP" false;
-    test_valid_words_choose "Test to see if anything in dict" (Some "LAMINAL");
+    test_valid_words_choose "Test to see if anything in dict" "AA";
   ]
 end
 
@@ -427,7 +428,7 @@ module StateTestMaker = struct
       "Test a bad confirmation of not placing the first word at the origin" 
       st5_not_on_origin;
     test_confirm_turn_exn2 
-      "Test a bad confirmation on a word not in the dictionary" st5_not_a_word;
+      "Test a bad confirmation on a word not in the lexicon" st5_not_a_word;
     test_confirm_turn_exn3 
       "Test a bad confirmation on board state with single letter" st5;
     test_pass_turn "Test random turn change" st0;
@@ -439,9 +440,9 @@ module StateTestMaker = struct
   ]
 end
 
-(** [scrabble_tests] is the list of tests generated from the 
-    [ScrabbleTestMaker] functor. *)
-let scrabble_tests = ScrabbleTestMaker.tests
+(** [oscrabbl_tests] is the list of tests generated from the 
+    [OScrabblTestMaker] functor. *)
+let oscrabbl_tests = OScrabblTestMaker.tests
 
 (** [state_tests] is the list of tests generated from the [StateTestMaker] 
     functor. *)
@@ -450,7 +451,7 @@ let state_tests = StateTestMaker.tests
 (** [test_suite] is used by OUnit to run tests. *)
 let test_suite =
   "Test suite for the project" >::: List.flatten [
-    scrabble_tests;
+    oscrabbl_tests;
     state_tests;
   ]
 

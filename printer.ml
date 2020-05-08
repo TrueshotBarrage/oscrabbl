@@ -1,7 +1,6 @@
 open State
-open Scrabble
+open OScrabbl
 
-(** [pp_color c str] pretty-prints a string [str] using color [c]. *)
 let pp_color c = ANSITerminal.print_string [c]
 
 let pp_y = pp_color ANSITerminal.yellow

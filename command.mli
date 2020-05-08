@@ -2,7 +2,7 @@
    Parsing of player commands.
 *)
 
-(** The type [object_phrase] represents the object phrase that can be part of a 
+(** [object_phrase] represents the object phrase that can be part of a 
     player command.  Each element of the list represents a word of the object 
     phrase, where a {i word} is defined as a consecutive sequence of non-space 
     characters.  Thus, no element of the list should contain any leading,
@@ -16,7 +16,7 @@
     An [object_phrase] is not permitted to be the empty list. *)
 type object_phrase = string list
 
-(** The type [command] represents a player command that is decomposed
+(** [command] represents a player command that is decomposed
     into a verb and possibly an object phrase. *)
 type command = 
   | Put of object_phrase
@@ -27,10 +27,10 @@ type command =
   | Help
   | Quit
 
-(** Raised when an empty command is parsed. *)
+(** [Empty] is raised when an empty command is parsed. *)
 exception Empty
 
-(** Raised when a malformed command is encountered. *)
+(** [Malformed] is raised when a malformed command is encountered. *)
 exception Malformed
 
 (** [parse str] parses a player's input into a [command], as follows. The first

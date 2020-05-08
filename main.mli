@@ -3,7 +3,7 @@
 *)
 open Command
 open Printer
-open Scrabble
+open OScrabbl
 open State
 
 (** [update_state cmd st] is a helper function that [continue] calls to 
@@ -16,5 +16,5 @@ val update_state : string -> state -> state
     flushing and printing the board, then reprompting the user. *)
 val continue : state -> unit
 
-(** [main ()] prompts for the game to play, then starts it. *)
+(** [main ()] starts OScrabbl! *)
 val main : unit -> unit

@@ -74,37 +74,20 @@ let letter_qty  =
 let letter_val (l : char) : int = 
   List.find (fun pair -> fst pair = l) bucket |> snd
 
-open DictionarySet
+module Lexicon = Set.Make(String)
 
-(** [StringKey] provides the necessary definitions to use strings
-    as keys in dictionaries. *)
-module StringKey : ElementSig with type t = string =
-struct
-  type t = string
-  let compare s1 s2 =
-    match Stdlib.compare s1 s2 with
-    | x when x < 0 -> Dictionary.LT
-    | x when x > 0 -> GT
-    | _ -> EQ
-  let format fmt s =
-    Format.fprintf fmt "\"%s\"" s
-end
-
-open TreeDictionary
-
-(** [TreeSet] is a [DictionarySet] of [StringKey]. *)
-module TreeSet = DictionarySet.Make(StringKey)(TreeDictionary.Make)
-open TreeSet
-
+(** [read_line i] reads from the input channel [i] and handles EOF. *)
 let read_line i = try Some (input_line i) with End_of_file -> None 
 
-let lines_from_files filename set = 
+(** [lines_from_files filename lx] reads each line from a text file named 
+    [filename] and inserts each line into [lx]. *)
+let lines_from_files filename lx = 
   let rec lines_from_files_aux i s = 
     match read_line i with 
     | None -> s
     | Some str -> 
       let str = String.trim str in
-      s |> insert str |> lines_from_files_aux i
-  in lines_from_files_aux (open_in filename) set
+      s |> Lexicon.add str |> lines_from_files_aux i
+  in lines_from_files_aux (open_in filename) lx
 
-let valid_words = lines_from_files "valid_words.txt" empty
+let valid_words = lines_from_files "valid_words.txt" Lexicon.empty

@@ -1,8 +1,7 @@
 module type StateSig = sig
   type state
   val init_state : unit -> state
-  val fill_player_hand : state -> state
-  val fill_bot_hand : state -> state
+  val fill_hand : state -> state
 end
 
 module StateCheck : StateSig = State

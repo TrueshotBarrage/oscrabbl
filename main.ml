@@ -1,8 +1,10 @@
 open Command
 open Printer
-open Scrabble
+open OScrabbl
 open State
 
+(** [pass_counter] counts how many consecutive turns have been passed. 
+    If a turn is not passed, [pass_counter] resets to 0. *)
 let pass_counter = ref 0
 
 (** [put wc_opt ch (i,j) st] updates [st] with the "put" command to put [ch] 
