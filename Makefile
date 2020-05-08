@@ -13,9 +13,10 @@ build:
 
 release: build
 	mkdir -p "release"
-	cp _build/main.byte release/main.byte
-	cp valid_words.txt release/valid_words.txt
-	cp OScrabbl release/OScrabbl
+	$(OCAMLBUILD) $(MAIN)
+	cp _build/main.byte release/
+	cp -n OScrabbl release/ || true
+	cp -n valid_words.txt release/ || true
 
 test:
 	$(OCAMLBUILD) -tag 'debug' $(TEST) && ./$(TEST)
