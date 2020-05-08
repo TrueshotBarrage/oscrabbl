@@ -365,8 +365,6 @@ let reset_board st =
     st.board.(x).(y) <- new_tile in 
   List.iter reset_tile st.coords
 
-(** [board_to_hand coords st] is a helper function to put every [Filled] letter 
-    from the board back to the current player's hand. *)
 let rec board_to_hand state =
   let rec letters_from_coords acc st = function
     | [] -> acc

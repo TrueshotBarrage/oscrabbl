@@ -45,20 +45,22 @@ let explode str =
 let exchange ch_list st = 
   let rec remove_ls_from_hand lst state = 
     match lst with  
-    | [] -> state
+    | [] -> (state, true)
     | h::t -> begin
-        let h = if h = '*' then ' ' else h in
-        match use_letter h state with 
+        let h' = if h = '*' then ' ' else h in
+        match use_letter h' state with 
         | exception Not_found -> 
-          pp_r ("You don't have " ^ Char.escaped h ^ " in your hand!"); st
+          pp_r ("You don't have " ^ Char.escaped h ^ " in your hand!"); st,false
         | st' -> remove_ls_from_hand t st'
       end in 
-  let st' = remove_ls_from_hand ch_list st in 
-  if st = st' then st else (
+  let st' = st |> board_to_hand in 
+  let st'',worked = st' |> remove_ls_from_hand ch_list in 
+  if not worked then st else (
     pass_counter := 0;
+    reset_board st'';
     List.fold_left (
       fun state ch -> update_available_letters false ch state
-    ) st' ch_list |> fill_hand |> pass_turn
+    ) st'' ch_list |> reset_coords |> fill_hand |> pass_turn
   )
 
 (** [exchange_aux cmd_lst st] checks whether all the elements in [cmd_lst] are 

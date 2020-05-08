@@ -98,6 +98,10 @@ val set_board : state -> unit
 (** [reset_board st] resets the board of any [Filled] letters. *)
 val reset_board : state -> unit
 
+(** [board_to_hand st] is a helper function to put every [Filled] letter 
+    from the board back to the current player's hand. *)
+val board_to_hand : state -> state
+
 (** [put_everything_back st] puts [Filled] letters on the board back to the 
     hand from which it came, and resets the board accordingly. *)
 val put_everything_back : state -> state
