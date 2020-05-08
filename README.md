@@ -12,11 +12,12 @@ Final project submission for Cornell's CS 3110: Functional Programming and Data 
 
 ## How to play
 Please check the [instructions](INSTALL.md) here.
-
-## Functionality
 - `make`: Runs OCaml's `utop` with the necessary build files.
 - `make test`: Runs the test suite. Feel free to test other functions as necessary.
 - `make clean`: Cleans the documentation from `make docs`, the zip file created using `make zip`, and/or the build files. 
+
+## Functionality
+Coming soon!
 
 ## Changelog
 - May 8th, 2020: Initial release!
