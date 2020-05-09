@@ -5,6 +5,7 @@ MLIS=$(MODULES:=.mli)
 TEST=test.byte
 MAIN=main.byte
 OCAMLBUILD=ocamlbuild -use-ocamlfind
+OCAMLBUILDNATIVE=ocamlbuild.native -use-ocamlfind main.native
 
 default: play
 
@@ -13,8 +14,8 @@ build:
 
 release: build
 	mkdir -p "release"
-	$(OCAMLBUILD) $(MAIN)
-	cp _build/main.byte release/
+	$(OCAMLBUILDNATIVE)
+	cp _build/main.native release/
 	cp -n OScrabbl release/ || true
 	cp -i valid_words.txt release/ || true
 
