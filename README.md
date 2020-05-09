@@ -14,7 +14,7 @@ GitHub repository [here](https://github.com/TrueshotBarrage/oscrabbl)
 
 ## How to play
 Please check the [instructions](INSTALL.md) here.
-- `make`: Runs OCaml's `utop` with the necessary build files.
+- `make`: Launches the game!
 - `make test`: Runs the test suite. Feel free to test other functions as necessary.
 - `make clean`: Cleans the documentation from `make docs`, the zip file created using `make zip`, and/or the build files. 
 
