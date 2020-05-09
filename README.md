@@ -3,6 +3,8 @@ OScrabbl is a Scrabble game for the command-line interface developed using (main
 
 Final project submission for Cornell's CS 3110: Functional Programming and Data Structures class, Spring 2020. (Yes, we made this completely remotely during a pandemic.)
 
+GitHub repository [here](https://github.com/TrueshotBarrage/oscrabbl)
+
 > Image of the board in utop
 ![Image of the board in utop](images/example.png)
 
