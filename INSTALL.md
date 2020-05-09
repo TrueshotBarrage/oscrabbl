@@ -1,8 +1,10 @@
 # Installation Instructions
 
-## Playing on the command line:
+## For OCaml users:
 
-We have included a `Makefile` for your convenience, adapted from CS 3110 assignments. Feel free to use it if you want; most of the commands are valid, including `make test` and `make build`.
+We have included a `Makefile` for your convenience, adapted from CS 3110 assignments. Feel free to use it if you want; most of the commands are valid, including `make`, `make play`, `make test`, and `make build`. The makefile will automatically build the source files for you to run with `ocamlrun`.
+
+- `make` will launch the game! It's a shorthand for `make play`.
 
 - `make build` builds the project. Don't worry about this step if you simply want to play the game, in which you might find useful:
 
@@ -14,4 +16,4 @@ We have included a `Makefile` for your convenience, adapted from CS 3110 assignm
 
 ## Easy installation:
 
-Ah, you are missing out my friend! Though many stories and testimonials can be shared to show off [the best programming language ever,](https://ocaml.org/) we understand if you would rather skip the mundane and cut to the chase of playing OScrabbl! Simply head over to the [releases](https://github.com/TrueshotBarrage/oscrabbl/releases) section and download the latest release to play. We have included a bash script executable that can be double clicked to launch the game.
+Ah, you are missing out my friend! Though many stories and testimonials can be shared to show off [the best programming language ever,](https://ocaml.org/) we understand if you would rather skip the mundane and cut to the chase of playing OScrabbl! Simply head over to the [releases](https://github.com/TrueshotBarrage/oscrabbl/releases) section and download the latest release to play. We have included a bash script executable that can be double clicked to launch the game. (Alternatively, just run the game in the command line by `cd`ing into your source directory and typing `./main.native`.)
