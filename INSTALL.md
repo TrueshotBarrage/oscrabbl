@@ -14,4 +14,4 @@ We have included a `Makefile` for your convenience, adapted from CS 3110 assignm
 
 ## Easy installation:
 
-Ah, you are missing out my friend! Though many stories and testimonials can be shared to show off [the best programming language ever,](https://ocaml.org/) we understand if you would rather skip the mundane and cut to the chase of playing OScrabbl! No worries, because we will update this **SOON** with a super helpful guide to let you run our program easily! This is **NOT** clickbait!!
+Ah, you are missing out my friend! Though many stories and testimonials can be shared to show off [the best programming language ever,](https://ocaml.org/) we understand if you would rather skip the mundane and cut to the chase of playing OScrabbl! Simply head over to the [releases](https://github.com/TrueshotBarrage/oscrabbl/releases) section and download the latest release to play. We have included a bash script executable that can be double clicked to launch the game.
