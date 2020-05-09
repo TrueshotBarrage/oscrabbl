@@ -1,9 +1,79 @@
+(**
+   Testing procedure:
+   -  We conducted some fairly extensive testing, and every part of our game 
+     development was carefully planned to ensure the least headache possible. 
+     (That is not to say that we did not have a good number of migraines fixing 
+     some of the nastier bugs.) However, our testing plan (though described in 
+     more detail in the next sections) can be stated as follows: 
+     1) Write failing OUnit test cases for functions as we begin to brainstorm 
+     what we need for a certain module to work properly. This gives us a clear 
+     idea of what we want from our function. 
+     2) Implement the function, catching obvious mistakes as we go headfirst.
+     3) Run the tests, which are rather black-box, and have them sometimes fail.
+     4) If the test failed, we look at why it failed and fix the issue. Else, 
+     continue to ensure the module is correct, if possible, by checking it in 
+     utop to see if it works correctly (glass-box testing).
+     5) At a point in development where we can actually play the game, test it 
+     even more by playing a few rounds here and there, adding more functions, 
+     and so on. Repeat this procedure as needed, and many, many more times.
+   - Since we built a game, we relied on both playtesting and OUnit tests to 
+     ensure our program was correct. We used test-driven development to make 
+     sure that we were able to incrementally check our program as we further 
+     developed the code, and accurately assessed any errors as soon as possible.
+     Specifically, we tested with OUnit every major part of exposed functions in 
+     state.mli and oScrabbl.mli as best we could, except a few functions that
+     were impossible to test glass-box style. We also made sure to test the 
+     non-exposed functions by black-box testing. (More on this in the next 
+     section.) What other functions that we could not test with OUnit were left 
+     to be tested as we played the game repeatedly, finding not too many, but 
+     still some occasional bugs as we tested boundary cases and enjoyed our 
+     game. In addition, since we had both declarative and imperative functions 
+     to test, we had to make sure to decouple each instance of our OUnit tests 
+     by creating an entirely new initial state of the game for EACH test case 
+     in our test suite that relied on imperative features (which was usually 
+     most tests.) This way, we were able to check that both the imperative and 
+     declarative features worked seamlessly together.
+   -  Because our game has randomized elements from the very beginning of the 
+     game, a nontrivial number of functions were tested with randomized results.
+     Specifically, our bag-dispensing modules were entirely random, so we 
+     developed tests for them first to ensure that EVERY time we ran the tests 
+     from that point onward, we would be able to test them once more. As such, 
+     we ran the same tests on the bag-dispensing algorithms that depended on 
+     some luck at least 200~300 times, with no failures once we had the correct 
+     functionality.
+   - We also tested other elements of the game, mostly using black-box testing 
+     but glass-box whenever possible. Since, for instance, we were not able to 
+     look into the states directly using OUnit tests, we had to rely on tests 
+     that put in certain inputs and expected clear outputs. This way, we were 
+     able to catch most of our blatant errors easily for the state modules that 
+     did not depend on random behavior, like the board, the hand. However, when 
+     black-box testing was not enough, we sometimes used utop to run lines of 
+     code at a time to deduce exactly what was incorrect so that we could 
+     pinpoint which function was broken. At a certain point in our game 
+     development cycle, we could run our game directly to test out whether 
+     our game would outwardly work by running the game and playing it. 
+     We repeated this procedure for all modules that gave us trouble even after 
+     extensive black-box testing through OUnit.
+   - As you can see, we are fairly confident in our game being almost foolproof.
+     We define "almost foolproof" in this case to be certainty above 95%, and 
+     the reason why we argue for such a high likelihood of correctness is 
+     because we employed the various testing techniques we learned throughout 
+     the course of this semester, including but not limited to test-driven 
+     development, glass-box/black-box testing, OUnit test suites, randomized 
+     testing, and playtesting. We also made sure to test repeatedly, never 
+     forgetting to test every time we added a new function. And of course, 
+     even after all this, we still caught occasional errors in our program, but 
+     that is unfortunately the nature of games. However, we believe after hours 
+     and hours of testing, that our procedure guarantees an almost foolproof 
+     implementation of OScrabbl.
+*)
+
 open OUnit2
 open OScrabbl
 open State
 
 (********************************************************************
-   Here are some helper functions for testing set-like lists. 
+   Here are some helper functions for testing and printing lists. 
  ********************************************************************)
 
 (** [cmp_unordered_lists lst1 lst2] compares two lists to see whether

@@ -16,7 +16,7 @@ release: build
 	$(OCAMLBUILD) $(MAIN)
 	cp _build/main.byte release/
 	cp -n OScrabbl release/ || true
-	cp -n valid_words.txt release/ || true
+	cp -i valid_words.txt release/ || true
 
 test:
 	$(OCAMLBUILD) -tag 'debug' $(TEST) && ./$(TEST)
@@ -26,15 +26,15 @@ play:
 
 check:
 	bash checkenv.sh && bash checktypes.sh
-	
+
 finalcheck: check
 	bash checkzip.sh
 
 zip:
 	zip OScrabbl.zip *.ml* *.txt *.md _tags .ocamlinit *.sh Makefile -x "_*.ml*"
-	
+
 docs: docs-public docs-private
-	
+
 docs-public: build
 	mkdir -p doc.public
 	ocamlfind ocamldoc -I _build -package ANSITerminal \
